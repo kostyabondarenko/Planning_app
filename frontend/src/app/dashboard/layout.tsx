@@ -1,66 +1,57 @@
-'use client';
-
 import Link from 'next/link';
-import { LayoutDashboard, Calendar, CheckSquare, Target, LogOut } from 'lucide-react';
-import { usePathname } from 'next/navigation';
+import { Target, Calendar, CheckSquare } from 'lucide-react';
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
-
-  const menuItems = [
-    { name: 'Мои Цели', href: '/dashboard', icon: Target },
-    { name: 'План на день', href: '/dashboard/daily', icon: CheckSquare },
-    { name: 'Календарь', href: '/dashboard/calendar', icon: Calendar },
-  ];
-
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
-        <div className="p-6">
-          <h2 className="text-xl font-bold text-blue-600 flex items-center gap-2">
-            <LayoutDashboard size={24} />
-            Navigator
-          </h2>
-        </div>
-        
-        <nav className="flex-1 px-4 space-y-2">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname === item.href;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition ${
-                  isActive
-                    ? 'bg-blue-50 text-blue-600'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                }`}
-              >
-                <Icon size={20} />
-                {item.name}
-              </Link>
-            );
-          })}
-        </nav>
+    <div className="min-h-screen bg-ios-gray-50">
+      {/* Навигация iOS стиль */}
+      <nav className="bg-white/80 backdrop-blur-xl border-b border-gray-200 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex items-center justify-between h-14">
+            <Link href="/" className="font-black text-xl text-gray-900">
+              Goal Navigator
+            </Link>
 
-        <div className="p-4 border-t border-gray-100">
-          <button className="flex items-center gap-3 px-4 py-3 w-full text-left text-sm font-medium text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-lg transition">
-            <LogOut size={20} />
-            Выйти
-          </button>
+            <div className="flex items-center gap-2">
+              <NavLink href="/dashboard" icon={Target}>
+                Цели
+              </NavLink>
+              <NavLink href="/dashboard/calendar" icon={Calendar}>
+                Календарь
+              </NavLink>
+              <NavLink href="/dashboard/daily" icon={CheckSquare}>
+                День
+              </NavLink>
+            </div>
+          </div>
         </div>
-      </aside>
+      </nav>
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-auto">
-        {children}
-      </main>
+      <main>{children}</main>
     </div>
+  );
+}
+
+function NavLink({ 
+  href, 
+  icon: Icon, 
+  children 
+}: { 
+  href: string; 
+  icon: React.ElementType; 
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center gap-2 px-4 py-2 rounded-xl text-gray-700 hover:bg-gray-100 transition-all font-semibold text-sm"
+    >
+      <Icon size={18} strokeWidth={2.5} />
+      <span className="hidden sm:inline">{children}</span>
+    </Link>
   );
 }

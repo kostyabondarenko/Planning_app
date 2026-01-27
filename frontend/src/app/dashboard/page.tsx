@@ -1,353 +1,467 @@
 'use client';
 
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect } from 'react';
 import { 
-  PlusCircle, Target, CheckCircle2, Circle, BarChart3, 
-  TrendingUp, Sparkles, Calendar, Award, Zap 
+  PlusCircle, Target, Calendar, Edit, Trash2, Check, X
 } from 'lucide-react';
-import ProgressCircle from '@/components/ProgressCircle';
-import StatsChart from '@/components/StatsChart';
-import DraggableSteps from '@/components/DraggableSteps';
+import ProgressRing from '@/components/ProgressRing';
 
-// Заглушка для данных (пока не подключили API)
-const INITIAL_GOALS = [
-  {
-    id: 1,
-    title: 'Выучить React 19',
-    description: 'Изучить новые хуки и Server Actions',
-    status: 'in_progress',
-    progress: 50,
-    color: 'blue',
-    steps: [
-      { id: 1, title: 'Прочитать документацию', is_completed: true },
-      { id: 2, title: 'Создать проект', is_completed: false },
-      { id: 3, title: 'Изучить Server Components', is_completed: false },
-    ]
-  },
-  {
-    id: 2,
-    title: 'Построить дом',
-    description: 'Начать с фундамента',
-    status: 'in_progress',
-    progress: 25,
-    color: 'green',
-    steps: [
-      { id: 4, title: 'Купить участок', is_completed: true },
-      { id: 5, title: 'Заложить фундамент', is_completed: false },
-      { id: 6, title: 'Возвести стены', is_completed: false },
-      { id: 7, title: 'Установить крышу', is_completed: false },
-    ]
-  },
-  {
-    id: 3,
-    title: 'Пробежать марафон',
-    description: '42 км за 4 часа',
-    status: 'in_progress',
-    progress: 75,
-    color: 'purple',
-    steps: [
-      { id: 8, title: 'Пробежать 5 км', is_completed: true },
-      { id: 9, title: 'Пробежать 10 км', is_completed: true },
-      { id: 10, title: 'Пробежать полумарафон', is_completed: true },
-      { id: 11, title: 'Пробежать марафон', is_completed: false },
-    ]
-  }
+interface Step {
+  id: number;
+  title: string;
+  description: string;
+  date: string;
+  color: string;
+  is_completed: boolean;
+}
+
+interface Goal {
+  id: number;
+  title: string;
+  description: string;
+  steps: Step[];
+  color: string;
+  icon: string;
+}
+
+const GOAL_PRESETS = [
+  { color: '#007AFF', icon: '🎯', name: 'Синий' },
+  { color: '#34C759', icon: '🌱', name: 'Зеленый' },
+  { color: '#FF9500', icon: '⭐', name: 'Оранжевый' },
+  { color: '#FF3B30', icon: '❤️', name: 'Красный' },
+  { color: '#AF52DE', icon: '💜', name: 'Фиолетовый' },
+  { color: '#FF2D55', icon: '🌸', name: 'Розовый' },
+  { color: '#5AC8FA', icon: '💧', name: 'Голубой' },
+  { color: '#FFCC00', icon: '⚡', name: 'Желтый' },
 ];
 
-const colorStyles = {
-  blue: {
-    bg: 'from-blue-500 to-blue-600',
-    light: 'bg-blue-50',
-    text: 'text-blue-600',
-    ring: 'ring-blue-500/20',
-  },
-  green: {
-    bg: 'from-green-500 to-green-600',
-    light: 'bg-green-50',
-    text: 'text-green-600',
-    ring: 'ring-green-500/20',
-  },
-  purple: {
-    bg: 'from-purple-500 to-purple-600',
-    light: 'bg-purple-50',
-    text: 'text-purple-600',
-    ring: 'ring-purple-500/20',
-  },
-};
-
 export default function DashboardPage() {
-  const [goals, setGoals] = useState(INITIAL_GOALS);
-  const [showStats, setShowStats] = useState(false);
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [isAddingGoal, setIsAddingGoal] = useState(false);
+  const [selectedGoalId, setSelectedGoalId] = useState<number | null>(null);
+  const [editingStepId, setEditingStepId] = useState<number | null>(null);
+  const [addingStepToGoalId, setAddingStepToGoalId] = useState<number | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+  
+  const [newGoalTitle, setNewGoalTitle] = useState('');
+  const [newGoalColor, setNewGoalColor] = useState(GOAL_PRESETS[0].color);
+  const [newGoalIcon, setNewGoalIcon] = useState(GOAL_PRESETS[0].icon);
 
-  // Расчет статистики
-  const stats = {
-    total_goals: goals.length,
-    completed_goals: goals.filter(g => g.progress === 100).length,
-    average_progress: goals.reduce((acc, g) => acc + g.progress, 0) / goals.length,
-    total_steps: goals.reduce((acc, g) => acc + g.steps.length, 0),
-    completed_steps: goals.reduce((acc, g) => acc + g.steps.filter(s => s.is_completed).length, 0),
-  };
+  const [stepFormData, setStepFormData] = useState({
+    title: '',
+    description: '',
+    date: '',
+    color: GOAL_PRESETS[0].color,
+  });
 
-  // Данные для графика
-  const chartData = goals.map(g => ({
-    name: g.title.slice(0, 15) + '...',
-    value: g.progress,
-  }));
-
-  // Функция для переключения статуса шага
-  const toggleStep = (goalId: number, stepId: number) => {
-    setGoals(prevGoals => prevGoals.map(goal => {
-      if (goal.id === goalId) {
-        const newSteps = goal.steps.map(step =>
-          step.id === stepId ? { ...step, is_completed: !step.is_completed } : step
-        );
-        const completedCount = newSteps.filter(s => s.is_completed).length;
-        const newProgress = newSteps.length > 0 ? (completedCount / newSteps.length) * 100 : 0;
-        return { ...goal, steps: newSteps, progress: newProgress };
+  // Загрузка целей из localStorage при монтировании
+  useEffect(() => {
+    const stored = localStorage.getItem('goals');
+    if (stored) {
+      try {
+        const loadedGoals = JSON.parse(stored);
+        const updatedGoals = loadedGoals.map((g: Goal) => ({
+          ...g,
+          color: g.color || GOAL_PRESETS[0].color,
+          icon: g.icon || GOAL_PRESETS[0].icon,
+        }));
+        setGoals(updatedGoals);
+      } catch (e) {
+        console.error('Ошибка загрузки целей:', e);
       }
-      return goal;
-    }));
+    }
+    setIsLoaded(true);
+  }, []);
+
+  // Сохранение целей в localStorage при изменении (только после загрузки!)
+  useEffect(() => {
+    if (isLoaded) {
+      localStorage.setItem('goals', JSON.stringify(goals));
+      window.dispatchEvent(new Event('storage'));
+    }
+  }, [goals, isLoaded]);
+
+  const handleCreateGoal = () => {
+    if (newGoalTitle.trim()) {
+      const newGoal: Goal = {
+        id: Date.now(),
+        title: newGoalTitle,
+        description: '',
+        steps: [],
+        color: newGoalColor,
+        icon: newGoalIcon,
+      };
+      setGoals([...goals, newGoal]);
+      setNewGoalTitle('');
+      setIsAddingGoal(false);
+    }
   };
 
-  const handleStepsReorder = (goalId: number, newSteps: any[]) => {
-    setGoals(prevGoals => prevGoals.map(goal =>
-      goal.id === goalId ? { ...goal, steps: newSteps } : goal
+  const handleSaveStep = (goalId: number) => {
+    if (stepFormData.title.trim()) {
+      if (editingStepId) {
+        setGoals(goals.map(goal =>
+          goal.id === goalId
+            ? {
+                ...goal,
+                steps: goal.steps.map(step =>
+                  step.id === editingStepId ? { ...step, ...stepFormData } : step
+                ),
+              }
+            : goal
+        ));
+        setEditingStepId(null);
+      } else {
+        const newStep: Step = {
+          id: Date.now(),
+          ...stepFormData,
+          is_completed: false,
+        };
+        setGoals(goals.map(goal =>
+          goal.id === goalId ? { ...goal, steps: [...goal.steps, newStep] } : goal
+        ));
+      }
+      
+      setStepFormData({
+        title: '',
+        description: '',
+        date: '',
+        color: GOAL_PRESETS[0].color,
+      });
+      setAddingStepToGoalId(null);
+    }
+  };
+
+  const startEditingStep = (goalId: number, step: Step) => {
+    setEditingStepId(step.id);
+    setAddingStepToGoalId(goalId);
+    setStepFormData({
+      title: step.title,
+      description: step.description,
+      date: step.date,
+      color: step.color,
+    });
+  };
+
+  const deleteGoal = (goalId: number) => {
+    if (confirm('Удалить эту цель?')) {
+      setGoals(goals.filter(g => g.id !== goalId));
+    }
+  };
+
+  const deleteStep = (goalId: number, stepId: number) => {
+    if (confirm('Удалить этот шаг?')) {
+      setGoals(goals.map(goal =>
+        goal.id === goalId
+          ? { ...goal, steps: goal.steps.filter(s => s.id !== stepId) }
+          : goal
+      ));
+    }
+  };
+
+  const toggleStepComplete = (goalId: number, stepId: number) => {
+    setGoals(goals.map(goal =>
+      goal.id === goalId
+        ? {
+            ...goal,
+            steps: goal.steps.map(step =>
+              step.id === stepId ? { ...step, is_completed: !step.is_completed } : step
+            ),
+          }
+        : goal
     ));
   };
 
+  const calculateProgress = (steps: Step[]) => {
+    if (steps.length === 0) return 0;
+    const completed = steps.filter(s => s.is_completed).length;
+    return Math.round((completed / steps.length) * 100);
+  };
+
+  const selectedGoal = goals.find(g => g.id === selectedGoalId);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/20 to-purple-50/20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header с анимацией */}
-        <motion.header
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8"
-        >
-          <div>
-            <h1 className="text-4xl font-extrabold text-gray-900 mb-2">
-              Мои Цели 🎯
-            </h1>
-            <p className="text-gray-600">Отслеживай прогресс и достигай целей</p>
-          </div>
-          <div className="flex gap-3">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setShowStats(!showStats)}
-              className="flex items-center gap-2 bg-white text-gray-700 px-4 py-2.5 rounded-xl hover:bg-gray-50 transition shadow-sm border border-gray-200"
-            >
-              <BarChart3 size={20} />
-              Статистика
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => alert('Создаем новую цель...')}
-              className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-5 py-2.5 rounded-xl hover:from-blue-700 hover:to-blue-800 transition shadow-lg shadow-blue-500/30"
-            >
-              <PlusCircle size={20} />
-              Новая цель
-            </motion.button>
-          </div>
-        </motion.header>
-
-        {/* Секция статистики с анимацией */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
-        >
-          <motion.div
-            whileHover={{ y: -4, shadow: "lg" }}
-            className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all"
-          >
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl text-white shadow-lg shadow-blue-500/30">
-                <Target size={24} />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 font-medium">Всего целей</p>
-                <p className="text-3xl font-bold text-gray-900">{stats.total_goals}</p>
-              </div>
-            </div>
-          </motion.div>
-
-          <motion.div
-            whileHover={{ y: -4 }}
-            className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all"
-          >
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-xl text-white shadow-lg shadow-green-500/30">
-                <CheckCircle2 size={24} />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 font-medium">Выполнено</p>
-                <p className="text-3xl font-bold text-gray-900">{stats.completed_steps}/{stats.total_steps}</p>
-              </div>
-            </div>
-          </motion.div>
-
-          <motion.div
-            whileHover={{ y: -4 }}
-            className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all"
-          >
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl text-white shadow-lg shadow-purple-500/30">
-                <TrendingUp size={24} />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 font-medium">Прогресс</p>
-                <p className="text-3xl font-bold text-gray-900">{Math.round(stats.average_progress)}%</p>
-              </div>
-            </div>
-          </motion.div>
-
-          <motion.div
-            whileHover={{ y: -4 }}
-            className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all"
-          >
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl text-white shadow-lg shadow-orange-500/30">
-                <Award size={24} />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 font-medium">Завершено</p>
-                <p className="text-3xl font-bold text-gray-900">{stats.completed_goals}</p>
-              </div>
-            </div>
-          </motion.div>
-        </motion.div>
-
-        {/* График статистики */}
-        <AnimatePresence>
-          {showStats && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mb-8 overflow-hidden"
-            >
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-2 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg text-white">
-                    <BarChart3 size={20} />
-                  </div>
-                  <h2 className="text-xl font-bold text-gray-900">Прогресс по целям</h2>
-                </div>
-                <StatsChart data={chartData} />
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Карточки целей */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-          {goals.map((goal, index) => (
-            <motion.div
-              key={goal.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 + 0.2 }}
-              whileHover={{ y: -8 }}
-              className="group"
-            >
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:border-gray-200 transition-all duration-300">
-                {/* Gradient header */}
-                <div className={`h-2 bg-gradient-to-r ${colorStyles[goal.color as keyof typeof colorStyles].bg}`} />
-                
-                <div className="p-6">
-                  {/* Top section */}
-                  <div className="flex items-start justify-between mb-4">
-                    <div className={`p-3 ${colorStyles[goal.color as keyof typeof colorStyles].light} rounded-xl ${colorStyles[goal.color as keyof typeof colorStyles].text} group-hover:scale-110 transition-transform`}>
-                      <Target size={24} />
-                    </div>
-                    <motion.div
-                      whileHover={{ scale: 1.05 }}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 rounded-full text-xs font-bold uppercase tracking-wide"
-                    >
-                      <Zap size={12} />
-                      {goal.status === 'in_progress' ? 'В работе' : goal.status}
-                    </motion.div>
-                  </div>
-
-                  {/* Title & Description */}
-                  <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition">
-                    {goal.title}
-                  </h3>
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                    {goal.description}
-                  </p>
-
-                  {/* Progress Circle */}
-                  <div className="flex items-center justify-center mb-6">
-                    <ProgressCircle progress={goal.progress} size={100} strokeWidth={6} />
-                  </div>
-
-                  {/* Steps section */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                        Шаги ({goal.steps.filter(s => s.is_completed).length}/{goal.steps.length})
-                      </p>
-                    </div>
-
-                    {goal.steps.length > 0 ? (
-                      <DraggableSteps
-                        steps={goal.steps}
-                        onToggle={(stepId) => toggleStep(goal.id, stepId)}
-                        onReorder={(newSteps) => handleStepsReorder(goal.id, newSteps)}
-                      />
-                    ) : (
-                      <p className="text-sm text-gray-400 italic text-center py-4">
-                        Шагов пока нет
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Action button */}
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => alert(`Открываем детали: ${goal.title}`)}
-                    className="mt-6 w-full py-3 text-sm font-bold text-white bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl hover:from-blue-700 hover:to-blue-800 transition shadow-lg shadow-blue-500/30"
-                  >
-                    Открыть детали
-                  </motion.button>
-                </div>
-              </div>
-            </motion.div>
-          ))}
+    <div className="min-h-screen p-6">
+      <div className="max-w-5xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-4xl font-black text-gray-900 mb-2">
+            Мои Цели
+          </h1>
+          <p className="text-gray-600 text-lg">
+            {goals.length === 0 ? 'Начни с первой цели' : `${goals.length} ${goals.length === 1 ? 'цель' : 'целей'}`}
+          </p>
         </div>
 
-        {/* Empty state для новых пользователей */}
-        {goals.length === 0 && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="flex flex-col items-center justify-center py-20 text-center"
+        {/* Сетка целей - круглые кнопки */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 mb-8">
+          {goals.map((goal, index) => {
+            const progress = calculateProgress(goal.steps);
+            
+            return (
+              <button
+                key={goal.id}
+                onClick={() => setSelectedGoalId(goal.id)}
+                className="flex flex-col items-center animate-spring-in hover:scale-105 transition-transform"
+                style={{ animationDelay: `${index * 50}ms` }}
+              >
+                <ProgressRing progress={progress} size={110} strokeWidth={6} color={goal.color}>
+                  <div 
+                    className="w-20 h-20 rounded-full flex items-center justify-center text-4xl shadow-ios-lg"
+                    style={{ backgroundColor: goal.color }}
+                  >
+                    {goal.icon}
+                  </div>
+                </ProgressRing>
+                <p className="text-gray-900 font-bold mt-3 text-sm text-center leading-tight">
+                  {goal.title}
+                </p>
+                <p className="text-gray-500 text-xs font-semibold mt-1">
+                  {progress}%
+                </p>
+              </button>
+            );
+          })}
+
+          {/* Кнопка добавления */}
+          <button
+            onClick={() => setIsAddingGoal(true)}
+            className="flex flex-col items-center hover:scale-105 transition-transform"
           >
-            <div className="w-24 h-24 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mb-6">
-              <Sparkles size={40} className="text-blue-600" />
+            <div className="w-[110px] h-[110px] flex items-center justify-center">
+              <div className="w-20 h-20 rounded-full border-4 border-dashed border-gray-300 flex items-center justify-center text-gray-400 hover:border-ios-blue hover:text-ios-blue transition-all shadow-ios">
+                <PlusCircle size={40} strokeWidth={2.5} />
+              </div>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">
-              Начни свой путь к цели!
-            </h3>
-            <p className="text-gray-600 mb-6 max-w-md">
-              Создай свою первую цель и разбей её на маленькие шаги. Мы поможем тебе не сбиться с пути!
+            <p className="text-gray-600 font-bold mt-3 text-sm">
+              Добавить
             </p>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => alert('Создаем первую цель...')}
-              className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-xl hover:from-blue-700 hover:to-blue-800 transition shadow-lg shadow-blue-500/30"
+          </button>
+        </div>
+
+        {/* Модалка создания цели */}
+        {isAddingGoal && (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-4xl p-8 max-w-md w-full shadow-2xl animate-spring-in">
+              <h2 className="text-2xl font-black text-gray-900 mb-6">Новая цель</h2>
+              
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                    Название
+                  </label>
+                  <input
+                    type="text"
+                    value={newGoalTitle}
+                    onChange={(e) => setNewGoalTitle(e.target.value)}
+                    placeholder="Например: Бегать каждый день"
+                    className="w-full px-4 py-3 bg-ios-gray-50 border-0 rounded-xl text-lg font-semibold focus:ring-2 focus:ring-ios-blue"
+                    autoFocus
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-3">
+                    Выбери стиль
+                  </label>
+                  <div className="grid grid-cols-4 gap-3">
+                    {GOAL_PRESETS.map((preset) => (
+                      <button
+                        key={preset.color}
+                        onClick={() => {
+                          setNewGoalColor(preset.color);
+                          setNewGoalIcon(preset.icon);
+                        }}
+                        className={`aspect-square rounded-2xl flex items-center justify-center text-3xl transition-all shadow-ios ${
+                          newGoalColor === preset.color
+                            ? 'ring-4 ring-ios-blue scale-110'
+                            : 'hover:scale-105'
+                        }`}
+                        style={{ backgroundColor: preset.color }}
+                      >
+                        {preset.icon}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    onClick={handleCreateGoal}
+                    disabled={!newGoalTitle.trim()}
+                    className="flex-1 bg-ios-blue text-white px-6 py-4 rounded-xl font-bold text-lg shadow-ios-lg hover:shadow-2xl hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Создать
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsAddingGoal(false);
+                      setNewGoalTitle('');
+                    }}
+                    className="px-6 py-4 bg-ios-gray-50 text-gray-700 rounded-xl hover:bg-ios-gray-100 transition font-bold"
+                  >
+                    <X size={24} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Детали выбранной цели */}
+        {selectedGoal && (
+          <div className="bg-white rounded-4xl p-6 shadow-ios-lg animate-slide-up">
+            <div className="flex items-start justify-between mb-6">
+              <div className="flex items-center gap-4">
+                <div 
+                  className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl shadow-ios-lg"
+                  style={{ backgroundColor: selectedGoal.color }}
+                >
+                  {selectedGoal.icon}
+                </div>
+                <div>
+                  <h2 className="text-2xl font-black text-gray-900">{selectedGoal.title}</h2>
+                  <p className="text-gray-600 font-semibold">
+                    {selectedGoal.steps.filter(s => s.is_completed).length} / {selectedGoal.steps.length} выполнено
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => deleteGoal(selectedGoal.id)}
+                  className="p-2 text-ios-red hover:bg-red-50 rounded-xl transition"
+                >
+                  <Trash2 size={20} />
+                </button>
+                <button
+                  onClick={() => setSelectedGoalId(null)}
+                  className="p-2 text-gray-500 hover:bg-gray-100 rounded-xl transition"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+
+            {/* Шаги */}
+            {selectedGoal.steps.length > 0 && (
+              <div className="space-y-2 mb-4">
+                {selectedGoal.steps.map((step) => (
+                  <div
+                    key={step.id}
+                    className="group flex items-center gap-4 bg-ios-gray-50 rounded-2xl p-4 hover:bg-ios-gray-100 transition-all"
+                  >
+                    <button
+                      onClick={() => toggleStepComplete(selectedGoal.id, step.id)}
+                      className="flex-shrink-0"
+                    >
+                      {step.is_completed ? (
+                        <div 
+                          className="w-7 h-7 rounded-full flex items-center justify-center text-white shadow-ios"
+                          style={{ backgroundColor: selectedGoal.color }}
+                        >
+                          <Check size={18} strokeWidth={3} />
+                        </div>
+                      ) : (
+                        <div className="w-7 h-7 rounded-full border-2 border-gray-300" />
+                      )}
+                    </button>
+                    
+                    <div className="flex-1">
+                      <p className={`font-bold ${step.is_completed ? 'line-through text-gray-400' : 'text-gray-900'}`}>
+                        {step.title}
+                      </p>
+                      {step.date && (
+                        <p className="text-sm text-gray-500 font-semibold mt-1">
+                          {new Date(step.date).toLocaleDateString('ru-RU')}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => startEditingStep(selectedGoal.id, step)}
+                        className="p-2 text-ios-blue hover:bg-blue-50 rounded-xl transition"
+                      >
+                        <Edit size={16} />
+                      </button>
+                      <button
+                        onClick={() => deleteStep(selectedGoal.id, step.id)}
+                        className="p-2 text-ios-red hover:bg-red-50 rounded-xl transition"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Форма шага */}
+            {addingStepToGoalId === selectedGoal.id ? (
+              <div className="bg-ios-gray-50 rounded-2xl p-4 space-y-3">
+                <input
+                  type="text"
+                  value={stepFormData.title}
+                  onChange={(e) => setStepFormData({ ...stepFormData, title: e.target.value })}
+                  placeholder="Название шага"
+                  className="w-full px-4 py-3 bg-white rounded-xl font-semibold border-0 focus:ring-2 focus:ring-ios-blue"
+                  autoFocus
+                />
+                <input
+                  type="date"
+                  value={stepFormData.date}
+                  onChange={(e) => setStepFormData({ ...stepFormData, date: e.target.value })}
+                  className="w-full px-4 py-3 bg-white rounded-xl font-semibold border-0 focus:ring-2 focus:ring-ios-blue"
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleSaveStep(selectedGoal.id)}
+                    disabled={!stepFormData.title.trim()}
+                    className="flex-1 bg-ios-blue text-white px-4 py-3 rounded-xl font-bold shadow-ios hover:scale-105 transition-all disabled:opacity-50"
+                  >
+                    {editingStepId ? 'Сохранить' : 'Добавить'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setAddingStepToGoalId(null);
+                      setEditingStepId(null);
+                    }}
+                    className="px-4 py-3 bg-ios-gray-100 text-gray-700 rounded-xl hover:bg-ios-gray-200 transition font-bold"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => setAddingStepToGoalId(selectedGoal.id)}
+                className="w-full py-4 border-2 border-dashed border-gray-300 rounded-2xl text-ios-blue hover:border-ios-blue hover:bg-blue-50 transition-all font-bold flex items-center justify-center gap-2"
+              >
+                <PlusCircle size={20} />
+                Добавить шаг
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Пустое состояние */}
+        {goals.length === 0 && (
+          <div className="text-center py-20 animate-slide-up">
+            <div className="text-6xl mb-6">🎯</div>
+            <h3 className="text-2xl font-black text-gray-900 mb-3">
+              Начни с первой цели!
+            </h3>
+            <p className="text-gray-600 mb-8 text-lg">
+              Разбей большую мечту на шаги
+            </p>
+            <button
+              onClick={() => setIsAddingGoal(true)}
+              className="inline-flex items-center gap-3 bg-ios-blue text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-ios-lg hover:scale-105 transition-all"
             >
-              <PlusCircle size={20} />
-              Создать первую цель
-            </motion.button>
-          </motion.div>
+              <PlusCircle size={24} />
+              Создать цель
+            </button>
+          </div>
         )}
       </div>
     </div>
