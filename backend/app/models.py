@@ -13,6 +13,7 @@ class User(Base):
 
     # Связь с целями: один пользователь может иметь много целей
     goals: Mapped[List["Goal"]] = relationship(back_populates="owner", cascade="all, delete-orphan")
+    todos: Mapped[List["Todo"]] = relationship(back_populates="owner", cascade="all, delete-orphan")
 
 class Goal(Base):
     __tablename__ = "goals"
@@ -39,3 +40,17 @@ class Step(Base):
 
     # Обратная связь с целью
     goal: Mapped["Goal"] = relationship(back_populates="steps")
+
+class Todo(Base):
+    __tablename__ = "todos"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    step_id: Mapped[int] = mapped_column(ForeignKey("steps.id"), nullable=True)
+    title: Mapped[str] = mapped_column(nullable=False)
+    date: Mapped[datetime] = mapped_column(nullable=False)
+    is_completed: Mapped[bool] = mapped_column(default=False)
+
+    # Связи
+    owner: Mapped["User"] = relationship(back_populates="todos")
+    step: Mapped["Step"] = relationship()
