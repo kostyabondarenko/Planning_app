@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { 
-  PlusCircle, Target, Calendar, Edit, Trash2, Check, X
+  PlusCircle, ArrowLeft, Edit, Trash2, Check, X, ChevronRight
 } from 'lucide-react';
 import ProgressRing from '@/components/ProgressRing';
 
@@ -81,6 +81,13 @@ export default function DashboardPage() {
     }
   }, [goals, isLoaded]);
 
+  // Сворачивание при возврате на страницу
+  useEffect(() => {
+    setSelectedGoalId(null);
+    setAddingStepToGoalId(null);
+    setEditingStepId(null);
+  }, []);
+
   const handleCreateGoal = () => {
     if (newGoalTitle.trim()) {
       const newGoal: Goal = {
@@ -146,6 +153,7 @@ export default function DashboardPage() {
   const deleteGoal = (goalId: number) => {
     if (confirm('Удалить эту цель?')) {
       setGoals(goals.filter(g => g.id !== goalId));
+      setSelectedGoalId(null);
     }
   };
 
@@ -180,11 +188,188 @@ export default function DashboardPage() {
 
   const selectedGoal = goals.find(g => g.id === selectedGoalId);
 
+  // Если выбрана цель - показываем полноэкранный вид
+  if (selectedGoal) {
+    return (
+      <div className="min-h-screen bg-ios-gray-50">
+        {/* Header с кнопкой назад */}
+        <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
+          <div className="max-w-4xl mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <button
+                onClick={() => {
+                  setSelectedGoalId(null);
+                  setAddingStepToGoalId(null);
+                  setEditingStepId(null);
+                }}
+                className="flex items-center gap-2 text-ios-blue font-bold hover:opacity-70 transition"
+              >
+                <ArrowLeft size={20} strokeWidth={2.5} />
+                Цели
+              </button>
+              
+              <button
+                onClick={() => deleteGoal(selectedGoal.id)}
+                className="p-2 text-ios-red hover:bg-red-50 rounded-xl transition"
+              >
+                <Trash2 size={20} />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Контент цели */}
+        <div className="max-w-4xl mx-auto p-4">
+          {/* Заголовок цели */}
+          <div className="bg-white rounded-4xl p-6 shadow-ios mb-4">
+            <div className="flex items-center gap-4 mb-2">
+              <div 
+                className="w-16 h-16 rounded-2xl flex items-center justify-center text-4xl shadow-ios-lg"
+                style={{ backgroundColor: selectedGoal.color }}
+              >
+                {selectedGoal.icon}
+              </div>
+              <div className="flex-1">
+                <h1 className="text-3xl font-black text-gray-900 mb-1">
+                  {selectedGoal.title}
+                </h1>
+                <p className="text-gray-600 font-semibold">
+                  {selectedGoal.steps.filter(s => s.is_completed).length} из {selectedGoal.steps.length} шагов выполнено
+                </p>
+              </div>
+              <div className="flex-shrink-0">
+                <ProgressRing 
+                  progress={calculateProgress(selectedGoal.steps)} 
+                  size={80} 
+                  strokeWidth={6} 
+                  color={selectedGoal.color}
+                >
+                  <div className="text-center">
+                    <div className="text-xl font-black text-gray-900">
+                      {calculateProgress(selectedGoal.steps)}%
+                    </div>
+                  </div>
+                </ProgressRing>
+              </div>
+            </div>
+          </div>
+
+          {/* Список шагов */}
+          {selectedGoal.steps.length > 0 && (
+            <div className="space-y-2 mb-4">
+              {selectedGoal.steps.map((step, index) => (
+                <div
+                  key={step.id}
+                  className="group bg-white rounded-2xl p-4 hover:shadow-ios transition-all"
+                >
+                  <div className="flex items-start gap-4">
+                    <button
+                      onClick={() => toggleStepComplete(selectedGoal.id, step.id)}
+                      className="flex-shrink-0 mt-1"
+                    >
+                      {step.is_completed ? (
+                        <div 
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-white shadow-ios"
+                          style={{ backgroundColor: selectedGoal.color }}
+                        >
+                          <Check size={18} strokeWidth={3} />
+                        </div>
+                      ) : (
+                        <div 
+                          className="w-8 h-8 rounded-full border-3"
+                          style={{ borderColor: selectedGoal.color, borderWidth: '3px' }}
+                        />
+                      )}
+                    </button>
+                    
+                    <div className="flex-1 min-w-0">
+                      <p className={`font-bold text-lg ${step.is_completed ? 'line-through text-gray-400' : 'text-gray-900'}`}>
+                        {index + 1}. {step.title}
+                      </p>
+                      {step.date && (
+                        <p className="text-sm text-gray-500 font-semibold mt-1">
+                          📅 {new Date(step.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                      <button
+                        onClick={() => startEditingStep(selectedGoal.id, step)}
+                        className="p-2 text-ios-blue hover:bg-blue-50 rounded-xl transition"
+                      >
+                        <Edit size={16} />
+                      </button>
+                      <button
+                        onClick={() => deleteStep(selectedGoal.id, step.id)}
+                        className="p-2 text-ios-red hover:bg-red-50 rounded-xl transition"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Форма добавления/редактирования шага */}
+          {addingStepToGoalId === selectedGoal.id ? (
+            <div className="bg-white rounded-2xl p-4 space-y-3 shadow-ios">
+              <input
+                type="text"
+                value={stepFormData.title}
+                onChange={(e) => setStepFormData({ ...stepFormData, title: e.target.value })}
+                placeholder="Название шага"
+                className="w-full px-4 py-3 bg-ios-gray-50 rounded-xl font-semibold border-0 focus:ring-2 focus:ring-ios-blue"
+                autoFocus
+              />
+              <input
+                type="date"
+                value={stepFormData.date}
+                onChange={(e) => setStepFormData({ ...stepFormData, date: e.target.value })}
+                className="w-full px-4 py-3 bg-ios-gray-50 rounded-xl font-semibold border-0 focus:ring-2 focus:ring-ios-blue"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleSaveStep(selectedGoal.id)}
+                  disabled={!stepFormData.title.trim()}
+                  className="flex-1 bg-ios-blue text-white px-4 py-3 rounded-xl font-bold shadow-ios hover:scale-105 transition-all disabled:opacity-50"
+                >
+                  {editingStepId ? 'Сохранить' : 'Добавить'}
+                </button>
+                <button
+                  onClick={() => {
+                    setAddingStepToGoalId(null);
+                    setEditingStepId(null);
+                    setStepFormData({ title: '', description: '', date: '', color: GOAL_PRESETS[0].color });
+                  }}
+                  className="px-4 py-3 bg-ios-gray-100 text-gray-700 rounded-xl hover:bg-ios-gray-200 transition font-bold"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setAddingStepToGoalId(selectedGoal.id)}
+              className="w-full py-4 border-2 border-dashed border-gray-300 rounded-2xl text-ios-blue hover:border-ios-blue hover:bg-blue-50 transition-all font-bold flex items-center justify-center gap-2 bg-white"
+            >
+              <PlusCircle size={20} />
+              Добавить шаг
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Основной вид - список целей
   return (
-    <div className="min-h-screen p-6">
-      <div className="max-w-5xl mx-auto">
+    <div className="min-h-screen p-4 sm:p-6">
+      <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-6">
           <h1 className="text-4xl font-black text-gray-900 mb-2">
             Мои Цели
           </h1>
@@ -193,51 +378,69 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        {/* Сетка целей - круглые кнопки */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 mb-8">
-          {goals.map((goal, index) => {
-            const progress = calculateProgress(goal.steps);
-            
-            return (
-              <button
-                key={goal.id}
-                onClick={() => setSelectedGoalId(goal.id)}
-                className="flex flex-col items-center animate-spring-in hover:scale-105 transition-transform"
-                style={{ animationDelay: `${index * 50}ms` }}
-              >
-                <ProgressRing progress={progress} size={110} strokeWidth={6} color={goal.color}>
-                  <div 
-                    className="w-20 h-20 rounded-full flex items-center justify-center text-4xl shadow-ios-lg"
-                    style={{ backgroundColor: goal.color }}
-                  >
-                    {goal.icon}
-                  </div>
-                </ProgressRing>
-                <p className="text-gray-900 font-bold mt-3 text-sm text-center leading-tight">
-                  {goal.title}
-                </p>
-                <p className="text-gray-500 text-xs font-semibold mt-1">
-                  {progress}%
-                </p>
-              </button>
-            );
-          })}
+        {/* Список целей */}
+        {goals.length > 0 && (
+          <div className="space-y-3 mb-4">
+            {goals.map((goal, index) => {
+              const progress = calculateProgress(goal.steps);
+              
+              return (
+                <button
+                  key={goal.id}
+                  onClick={() => setSelectedGoalId(goal.id)}
+                  className="w-full bg-white rounded-2xl p-4 hover:shadow-ios-lg transition-all text-left group animate-spring-in"
+                  style={{ animationDelay: `${index * 50}ms` }}
+                >
+                  <div className="flex items-center gap-4">
+                    <div 
+                      className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl shadow-ios flex-shrink-0"
+                      style={{ backgroundColor: goal.color }}
+                    >
+                      {goal.icon}
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-xl font-black text-gray-900 mb-1">
+                        {goal.title}
+                      </h3>
+                      <p className="text-sm text-gray-600 font-semibold">
+                        {goal.steps.filter(s => s.is_completed).length} из {goal.steps.length} шагов • {progress}%
+                      </p>
+                    </div>
 
-          {/* Кнопка добавления */}
-          <button
-            onClick={() => setIsAddingGoal(true)}
-            className="flex flex-col items-center hover:scale-105 transition-transform"
-          >
-            <div className="w-[110px] h-[110px] flex items-center justify-center">
-              <div className="w-20 h-20 rounded-full border-4 border-dashed border-gray-300 flex items-center justify-center text-gray-400 hover:border-ios-blue hover:text-ios-blue transition-all shadow-ios">
-                <PlusCircle size={40} strokeWidth={2.5} />
-              </div>
-            </div>
-            <p className="text-gray-600 font-bold mt-3 text-sm">
-              Добавить
-            </p>
-          </button>
-        </div>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      <ProgressRing 
+                        progress={progress} 
+                        size={50} 
+                        strokeWidth={4} 
+                        color={goal.color}
+                      >
+                        <div className="text-xs font-black text-gray-900">
+                          {progress}%
+                        </div>
+                      </ProgressRing>
+                      
+                      <ChevronRight 
+                        size={24} 
+                        className="text-gray-400 group-hover:text-ios-blue transition" 
+                        strokeWidth={2.5}
+                      />
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Кнопка добавления цели */}
+        <button
+          onClick={() => setIsAddingGoal(true)}
+          className="w-full py-4 border-2 border-dashed border-gray-300 rounded-2xl text-ios-blue hover:border-ios-blue hover:bg-blue-50 transition-all font-bold flex items-center justify-center gap-2"
+        >
+          <PlusCircle size={24} strokeWidth={2.5} />
+          Добавить цель
+        </button>
 
         {/* Модалка создания цели */}
         {isAddingGoal && (
@@ -308,142 +511,6 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Детали выбранной цели */}
-        {selectedGoal && (
-          <div className="bg-white rounded-4xl p-6 shadow-ios-lg animate-slide-up">
-            <div className="flex items-start justify-between mb-6">
-              <div className="flex items-center gap-4">
-                <div 
-                  className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl shadow-ios-lg"
-                  style={{ backgroundColor: selectedGoal.color }}
-                >
-                  {selectedGoal.icon}
-                </div>
-                <div>
-                  <h2 className="text-2xl font-black text-gray-900">{selectedGoal.title}</h2>
-                  <p className="text-gray-600 font-semibold">
-                    {selectedGoal.steps.filter(s => s.is_completed).length} / {selectedGoal.steps.length} выполнено
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => deleteGoal(selectedGoal.id)}
-                  className="p-2 text-ios-red hover:bg-red-50 rounded-xl transition"
-                >
-                  <Trash2 size={20} />
-                </button>
-                <button
-                  onClick={() => setSelectedGoalId(null)}
-                  className="p-2 text-gray-500 hover:bg-gray-100 rounded-xl transition"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-            </div>
-
-            {/* Шаги */}
-            {selectedGoal.steps.length > 0 && (
-              <div className="space-y-2 mb-4">
-                {selectedGoal.steps.map((step) => (
-                  <div
-                    key={step.id}
-                    className="group flex items-center gap-4 bg-ios-gray-50 rounded-2xl p-4 hover:bg-ios-gray-100 transition-all"
-                  >
-                    <button
-                      onClick={() => toggleStepComplete(selectedGoal.id, step.id)}
-                      className="flex-shrink-0"
-                    >
-                      {step.is_completed ? (
-                        <div 
-                          className="w-7 h-7 rounded-full flex items-center justify-center text-white shadow-ios"
-                          style={{ backgroundColor: selectedGoal.color }}
-                        >
-                          <Check size={18} strokeWidth={3} />
-                        </div>
-                      ) : (
-                        <div className="w-7 h-7 rounded-full border-2 border-gray-300" />
-                      )}
-                    </button>
-                    
-                    <div className="flex-1">
-                      <p className={`font-bold ${step.is_completed ? 'line-through text-gray-400' : 'text-gray-900'}`}>
-                        {step.title}
-                      </p>
-                      {step.date && (
-                        <p className="text-sm text-gray-500 font-semibold mt-1">
-                          {new Date(step.date).toLocaleDateString('ru-RU')}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => startEditingStep(selectedGoal.id, step)}
-                        className="p-2 text-ios-blue hover:bg-blue-50 rounded-xl transition"
-                      >
-                        <Edit size={16} />
-                      </button>
-                      <button
-                        onClick={() => deleteStep(selectedGoal.id, step.id)}
-                        className="p-2 text-ios-red hover:bg-red-50 rounded-xl transition"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Форма шага */}
-            {addingStepToGoalId === selectedGoal.id ? (
-              <div className="bg-ios-gray-50 rounded-2xl p-4 space-y-3">
-                <input
-                  type="text"
-                  value={stepFormData.title}
-                  onChange={(e) => setStepFormData({ ...stepFormData, title: e.target.value })}
-                  placeholder="Название шага"
-                  className="w-full px-4 py-3 bg-white rounded-xl font-semibold border-0 focus:ring-2 focus:ring-ios-blue"
-                  autoFocus
-                />
-                <input
-                  type="date"
-                  value={stepFormData.date}
-                  onChange={(e) => setStepFormData({ ...stepFormData, date: e.target.value })}
-                  className="w-full px-4 py-3 bg-white rounded-xl font-semibold border-0 focus:ring-2 focus:ring-ios-blue"
-                />
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleSaveStep(selectedGoal.id)}
-                    disabled={!stepFormData.title.trim()}
-                    className="flex-1 bg-ios-blue text-white px-4 py-3 rounded-xl font-bold shadow-ios hover:scale-105 transition-all disabled:opacity-50"
-                  >
-                    {editingStepId ? 'Сохранить' : 'Добавить'}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setAddingStepToGoalId(null);
-                      setEditingStepId(null);
-                    }}
-                    className="px-4 py-3 bg-ios-gray-100 text-gray-700 rounded-xl hover:bg-ios-gray-200 transition font-bold"
-                  >
-                    <X size={20} />
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <button
-                onClick={() => setAddingStepToGoalId(selectedGoal.id)}
-                className="w-full py-4 border-2 border-dashed border-gray-300 rounded-2xl text-ios-blue hover:border-ios-blue hover:bg-blue-50 transition-all font-bold flex items-center justify-center gap-2"
-              >
-                <PlusCircle size={20} />
-                Добавить шаг
-              </button>
-            )}
-          </div>
-        )}
-
         {/* Пустое состояние */}
         {goals.length === 0 && (
           <div className="text-center py-20 animate-slide-up">
@@ -454,13 +521,6 @@ export default function DashboardPage() {
             <p className="text-gray-600 mb-8 text-lg">
               Разбей большую мечту на шаги
             </p>
-            <button
-              onClick={() => setIsAddingGoal(true)}
-              className="inline-flex items-center gap-3 bg-ios-blue text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-ios-lg hover:scale-105 transition-all"
-            >
-              <PlusCircle size={24} />
-              Создать цель
-            </button>
           </div>
         )}
       </div>
