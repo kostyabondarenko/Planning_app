@@ -1,5 +1,8 @@
+'use client';
+
 import Link from 'next/link';
-import { Target, Calendar, CheckSquare } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import { Target, Calendar, CheckSquare, Sparkles } from 'lucide-react';
 
 export default function DashboardLayout({
   children,
@@ -7,16 +10,23 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-ios-gray-50">
+    <div className="min-h-screen bg-app-bg">
       {/* Навигация iOS стиль */}
-      <nav className="bg-white/80 backdrop-blur-xl border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex items-center justify-between h-14">
-            <Link href="/" className="font-black text-xl text-gray-900">
-              Goal Navigator
+      <nav className="bg-app-surface/90 backdrop-blur-xl border-b border-app-border sticky top-0 z-50 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="flex items-center justify-between h-16">
+            {/* Logo */}
+            <Link href="/" className="flex items-center gap-2 group">
+              <div className="w-9 h-9 bg-gradient-to-br from-app-accent to-ios-purple rounded-xl flex items-center justify-center shadow-ios group-hover:scale-105 transition-transform">
+                <Sparkles size={18} className="text-white" />
+              </div>
+              <span className="font-black text-xl text-app-text hidden sm:block">
+                Goal Navigator
+              </span>
             </Link>
 
-            <div className="flex items-center gap-2">
+            {/* Navigation */}
+            <div className="flex items-center gap-1 sm:gap-2 bg-app-surfaceMuted p-1 rounded-2xl">
               <NavLink href="/dashboard" icon={Target}>
                 Цели
               </NavLink>
@@ -45,10 +55,17 @@ function NavLink({
   icon: React.ElementType; 
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  const isActive = pathname === href;
+
   return (
     <Link
       href={href}
-      className="flex items-center gap-2 px-4 py-2 rounded-xl text-gray-700 hover:bg-gray-100 transition-all font-semibold text-sm"
+      className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl font-semibold text-sm transition-all ${
+        isActive 
+          ? 'bg-app-surface text-app-accent shadow-ios' 
+          : 'text-app-textMuted hover:text-app-text hover:bg-app-surface/50'
+      }`}
     >
       <Icon size={18} strokeWidth={2.5} />
       <span className="hidden sm:inline">{children}</span>

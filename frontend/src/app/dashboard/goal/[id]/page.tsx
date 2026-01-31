@@ -9,6 +9,8 @@ import {
 import Link from 'next/link';
 import ProgressCircle from '@/components/ProgressCircle';
 import DraggableSteps from '@/components/DraggableSteps';
+import Button from '@/components/ui/Button';
+import Input from '@/components/ui/Input';
 
 // Mock data - в будущем получим из API
 const GOAL_DATA = {
@@ -68,7 +70,7 @@ export default function GoalDetailPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/20 to-purple-50/20">
+    <div className="min-h-screen bg-app-bg">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Back button */}
         <motion.div
@@ -77,7 +79,7 @@ export default function GoalDetailPage() {
         >
           <Link
             href="/dashboard"
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition"
+            className="inline-flex items-center gap-2 text-app-textMuted hover:text-app-text mb-6 transition"
           >
             <ArrowLeft size={20} />
             <span className="font-medium">Назад к целям</span>
@@ -88,7 +90,7 @@ export default function GoalDetailPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden"
+          className="bg-app-surface rounded-2xl shadow-ios-lg border border-app-border overflow-hidden"
         >
           {/* Header with gradient */}
           <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-8 text-white">
@@ -121,14 +123,14 @@ export default function GoalDetailPage() {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="p-2.5 bg-white/20 hover:bg-white/30 rounded-xl transition backdrop-blur-sm"
+                  className="p-2.5 bg-white/20 hover:bg-white/30 rounded-xl transition backdrop-blur-sm tap-target"
                 >
                   <Edit size={18} />
                 </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="p-2.5 bg-white/20 hover:bg-red-500/80 rounded-xl transition backdrop-blur-sm"
+                  className="p-2.5 bg-white/20 hover:bg-red-500/80 rounded-xl transition backdrop-blur-sm tap-target"
                 >
                   <Trash2 size={18} />
                 </motion.button>
@@ -145,8 +147,8 @@ export default function GoalDetailPage() {
               transition={{ delay: 0.2 }}
               className="mb-8"
             >
-              <h2 className="text-lg font-bold text-gray-900 mb-2">Описание</h2>
-              <p className="text-gray-600 leading-relaxed">{goal.description}</p>
+              <h2 className="text-lg font-bold text-app-text mb-2">Описание</h2>
+              <p className="text-app-textMuted leading-relaxed">{goal.description}</p>
             </motion.div>
 
             {/* Progress section */}
@@ -157,8 +159,8 @@ export default function GoalDetailPage() {
               className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8"
             >
               {/* Progress circle */}
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-2xl border border-blue-100">
-                <h3 className="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
+              <div className="bg-app-surfaceMuted p-6 rounded-2xl border border-app-border">
+                <h3 className="text-sm font-bold text-app-textMuted mb-4 flex items-center gap-2">
                   <TrendingUp size={16} />
                   Общий прогресс
                 </h3>
@@ -169,15 +171,15 @@ export default function GoalDetailPage() {
 
               {/* Stats */}
               <div className="space-y-4">
-                <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-2xl border border-green-100">
+                <div className="bg-app-surfaceMuted p-4 rounded-2xl border border-app-border">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 bg-green-500 rounded-lg text-white">
+                      <div className="p-2 bg-app-success rounded-lg text-white">
                         <CheckCircle2 size={20} />
                       </div>
                       <div>
-                        <p className="text-xs text-gray-600 font-medium">Выполнено шагов</p>
-                        <p className="text-2xl font-bold text-gray-900">
+                        <p className="text-xs text-app-textMuted font-medium">Выполнено шагов</p>
+                        <p className="text-2xl font-bold text-app-text">
                           {goal.steps.filter(s => s.is_completed).length}
                         </p>
                       </div>
@@ -185,15 +187,15 @@ export default function GoalDetailPage() {
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-4 rounded-2xl border border-purple-100">
+                <div className="bg-app-surfaceMuted p-4 rounded-2xl border border-app-border">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 bg-purple-500 rounded-lg text-white">
+                      <div className="p-2 bg-ios-purple rounded-lg text-white">
                         <Circle size={20} />
                       </div>
                       <div>
-                        <p className="text-xs text-gray-600 font-medium">Осталось шагов</p>
-                        <p className="text-2xl font-bold text-gray-900">
+                        <p className="text-xs text-app-textMuted font-medium">Осталось шагов</p>
+                        <p className="text-2xl font-bold text-app-text">
                           {goal.steps.filter(s => !s.is_completed).length}
                         </p>
                       </div>
@@ -201,15 +203,15 @@ export default function GoalDetailPage() {
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-orange-50 to-yellow-50 p-4 rounded-2xl border border-orange-100">
+                <div className="bg-app-surfaceMuted p-4 rounded-2xl border border-app-border">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 bg-orange-500 rounded-lg text-white">
+                      <div className="p-2 bg-app-warning rounded-lg text-white">
                         <Calendar size={20} />
                       </div>
                       <div>
-                        <p className="text-xs text-gray-600 font-medium">Дедлайн</p>
-                        <p className="text-lg font-bold text-gray-900">
+                        <p className="text-xs text-app-textMuted font-medium">Дедлайн</p>
+                        <p className="text-lg font-bold text-app-text">
                           {new Date(goal.deadline).toLocaleDateString('ru-RU', { 
                             day: 'numeric', 
                             month: 'long' 
@@ -229,14 +231,14 @@ export default function GoalDetailPage() {
               transition={{ delay: 0.4 }}
             >
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">
+                <h2 className="text-2xl font-bold text-app-text">
                   Шаги к цели
                 </h2>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setIsAddingStep(true)}
-                  className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-500/30"
+                  className="flex items-center gap-2 bg-app-accent text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition shadow-ios"
                 >
                   <Plus size={18} />
                   Добавить шаг
@@ -249,33 +251,29 @@ export default function GoalDetailPage() {
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
-                  className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-xl"
+                  className="mb-4 p-4 bg-app-accentSoft border border-app-border rounded-xl"
                 >
-                  <input
+                  <Input
                     type="text"
                     value={newStepTitle}
                     onChange={(e) => setNewStepTitle(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && addNewStep()}
                     placeholder="Название нового шага..."
-                    className="w-full px-4 py-3 border border-blue-300 rounded-lg mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     autoFocus
                   />
-                  <div className="flex gap-2">
-                    <button
-                      onClick={addNewStep}
-                      className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition font-medium"
-                    >
+                  <div className="flex gap-2 mt-3">
+                    <Button onClick={addNewStep} className="flex-1">
                       Добавить
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="secondary"
                       onClick={() => {
                         setIsAddingStep(false);
                         setNewStepTitle('');
                       }}
-                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-medium"
                     >
                       Отмена
-                    </button>
+                    </Button>
                   </div>
                 </motion.div>
               )}
@@ -288,12 +286,12 @@ export default function GoalDetailPage() {
                   onReorder={handleStepsReorder}
                 />
               ) : (
-                <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
-                  <Circle size={48} className="mx-auto text-gray-400 mb-3" />
-                  <p className="text-gray-600 mb-4">Шагов пока нет</p>
+                <div className="text-center py-12 bg-app-surfaceMuted rounded-xl border-2 border-dashed border-app-border">
+                  <Circle size={48} className="mx-auto text-app-textMuted mb-3" />
+                  <p className="text-app-textMuted mb-4">Шагов пока нет</p>
                   <button
                     onClick={() => setIsAddingStep(true)}
-                    className="text-blue-600 hover:text-blue-700 font-medium"
+                    className="text-app-accent hover:text-blue-700 font-medium"
                   >
                     Добавить первый шаг
                   </button>

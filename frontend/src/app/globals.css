@@ -1,45 +1,78 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+/* Tailwind v4 Theme Configuration */
+@theme {
+  /* iOS-inspired colors */
+  --color-ios-blue: #007AFF;
+  --color-ios-green: #34C759;
+  --color-ios-orange: #FF9500;
+  --color-ios-red: #FF3B30;
+  --color-ios-purple: #AF52DE;
+  --color-ios-pink: #FF2D55;
+  --color-ios-teal: #5AC8FA;
+  --color-ios-yellow: #FFCC00;
+  --color-ios-gray-50: #F2F2F7;
+  --color-ios-gray-100: #E5E5EA;
+  --color-ios-gray-200: #D1D1D6;
+  --color-ios-gray-300: #C7C7CC;
+
+  /* App design tokens */
+  --color-app-bg: #F2F2F7;
+  --color-app-surface: #FFFFFF;
+  --color-app-surfaceMuted: #F7F7FB;
+  --color-app-text: #0B0B0B;
+  --color-app-textMuted: #6B7280;
+  --color-app-border: #E5E7EB;
+  --color-app-accent: #007AFF;
+  --color-app-accentSoft: #E6F0FF;
+  --color-app-success: #34C759;
+  --color-app-warning: #FF9500;
+  --color-app-danger: #FF3B30;
+  --color-app-info: #5AC8FA;
+
+  /* Custom border radius */
+  --radius-4xl: 2rem;
+
+  /* Custom shadows */
+  --shadow-ios: 0 2px 10px rgba(0, 0, 0, 0.08);
+  --shadow-ios-lg: 0 4px 20px rgba(0, 0, 0, 0.12);
+
+  /* Font family */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+}
 
 @layer base {
   * {
-    @apply border-gray-200;
+    border-color: var(--color-gray-200, #e5e7eb);
   }
   
   html {
     scroll-behavior: smooth;
-    /* iOS Safe Area для вырезов экрана */
     padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   }
   
   body {
-    @apply text-gray-900 antialiased;
+    color: var(--color-app-text);
+    background-color: var(--color-app-bg);
     font-feature-settings: 'liga' 1, 'calt' 1;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background-color: #F2F2F7; /* iOS системный фон */
-    /* Предотвращение резинового скролла на iOS */
     overscroll-behavior-y: none;
-    /* Убираем выделение при долгом нажатии на iOS */
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
   }
 
-  /* iOS стиль для кнопок */
   button {
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
   }
 
-  /* iOS стиль для инпутов */
   input, textarea {
     -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;
   }
 
-  /* Prevent zoom on iOS */
   @supports (-webkit-touch-callout: none) {
     input, textarea, select {
       font-size: 16px !important;
@@ -101,6 +134,23 @@
   }
 
   /* Утилиты */
+  .tap-target {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .calendar-cell {
+    width: 44px;
+    height: 44px;
+    border-radius: 9999px;
+  }
+
   .line-clamp-2 {
     display: -webkit-box;
     -webkit-line-clamp: 2;

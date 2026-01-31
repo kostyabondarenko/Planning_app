@@ -55,12 +55,12 @@ function SortableStep({ step, onToggle }: { step: Step; onToggle: (id: number) =
       style={style}
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
-      className="flex items-center gap-2 bg-white p-3 rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-sm transition-all group"
+      className="flex items-center gap-2 bg-app-surface p-3 rounded-lg border border-app-border hover:border-app-accent/40 hover:shadow-sm transition-all group"
     >
       <div
         {...attributes}
         {...listeners}
-        className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
+        className="cursor-grab active:cursor-grabbing text-app-textMuted hover:text-app-text"
       >
         <GripVertical size={18} />
       </div>
@@ -70,13 +70,13 @@ function SortableStep({ step, onToggle }: { step: Step; onToggle: (id: number) =
         className="flex items-center gap-3 flex-1 text-left"
       >
         {step.is_completed ? (
-          <CheckCircle2 size={20} className="text-green-500 flex-shrink-0" />
+          <CheckCircle2 size={20} className="text-app-success flex-shrink-0" />
         ) : (
-          <Circle size={20} className="text-gray-300 flex-shrink-0 group-hover:text-blue-400 transition" />
+          <Circle size={20} className="text-app-textMuted/40 flex-shrink-0 group-hover:text-app-accent transition" />
         )}
         <span
           className={`text-sm ${
-            step.is_completed ? 'line-through text-gray-400' : 'text-gray-700'
+            step.is_completed ? 'line-through text-app-textMuted' : 'text-app-text'
           }`}
         >
           {step.title}

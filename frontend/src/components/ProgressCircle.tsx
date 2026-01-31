@@ -24,7 +24,7 @@ export default function ProgressCircle({ progress, size = 120, strokeWidth = 8 }
           stroke="currentColor"
           strokeWidth={strokeWidth}
           fill="none"
-          className="text-gray-200"
+          className="text-app-border"
         />
         {/* Progress circle */}
         <motion.circle
@@ -35,7 +35,7 @@ export default function ProgressCircle({ progress, size = 120, strokeWidth = 8 }
           strokeWidth={strokeWidth}
           fill="none"
           strokeLinecap="round"
-          className="text-blue-600"
+          className="text-app-accent"
           strokeDasharray={circumference}
           initial={{ strokeDashoffset: circumference }}
           animate={{ strokeDashoffset: offset }}
@@ -49,10 +49,10 @@ export default function ProgressCircle({ progress, size = 120, strokeWidth = 8 }
           transition={{ delay: 0.3, duration: 0.5 }}
           className="text-center"
         >
-          <div className="text-2xl font-bold text-gray-900">
+          <div className="text-2xl font-bold text-app-text">
             {Math.round(progress)}%
           </div>
-          <div className="text-xs text-gray-500">прогресс</div>
+          <div className="text-xs text-app-textMuted">прогресс</div>
         </motion.div>
       </div>
     </div>
