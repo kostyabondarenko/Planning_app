@@ -1,9 +1,10 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
+import { ThemeProvider } from "@/lib/ThemeProvider";
 import "./globals.css";
 
-const inter = Inter({ 
-  subsets: ["latin", "cyrillic"],
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ["latin", "cyrillic-ext"],
   weight: ["300", "400", "500", "600", "700", "800"],
   display: "swap",
 });
@@ -33,7 +34,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#007AFF",
+  themeColor: "#FFFBF7",
 };
 
 export default function RootLayout({
@@ -48,7 +49,9 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       </head>
-      <body className={inter.className}>{children}</body>
+      <body className={plusJakartaSans.className}>
+        <ThemeProvider>{children}</ThemeProvider>
+      </body>
     </html>
   );
 }

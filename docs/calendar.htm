@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Goal Navigator — Calendar Concept v3</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #FFFBF7;
+            --bg-secondary: #FFF8F2;
+            --bg-tertiary: #FFFFFF;
+            --bg-card: rgba(255, 255, 255, 0.7);
+            --bg-glass: rgba(255, 251, 247, 0.6);
+            
+            --text-primary: #2D2A26;
+            --text-secondary: #6B645B;
+            --text-tertiary: #9C958B;
+            --text-inverse: #FFFBF7;
+            
+            --accent-primary: #E8A87C;
+            --accent-primary-hover: #D9956A;
+            --accent-secondary: #C49BBB;
+            --accent-tertiary: #85B8CB;
+            --accent-success: #8CB369;
+            --accent-warning: #E8B84C;
+            --accent-error: #D9756C;
+            
+            --gradient-warm: linear-gradient(135deg, #E8A87C 0%, #D9A7C7 100%);
+            --gradient-aurora: linear-gradient(135deg, #E8A87C 0%, #C49BBB 50%, #85B8CB 100%);
+            
+            --border-light: rgba(45, 42, 38, 0.06);
+            --border-medium: rgba(45, 42, 38, 0.12);
+            
+            --glass-bg: rgba(255, 251, 247, 0.6);
+            --glass-bg-hover: rgba(255, 255, 255, 0.8);
+            --glass-border: rgba(232, 168, 124, 0.15);
+            --glass-border-hover: rgba(232, 168, 124, 0.3);
+            
+            --shadow-sm: 0 2px 8px rgba(45, 42, 38, 0.06);
+            --shadow-md: 0 4px 16px rgba(45, 42, 38, 0.08);
+            --shadow-lg: 0 8px 32px rgba(45, 42, 38, 0.12);
+            --shadow-lift: 0 20px 40px rgba(232, 168, 124, 0.15);
+            
+            --blur-md: blur(16px);
+            
+            --radius-sm: 10px;
+            --radius-md: 14px;
+            --radius-lg: 20px;
+            --radius-xl: 28px;
+            --radius-full: 9999px;
+            
+            --transition-fast: 0.15s ease;
+            --transition-base: 0.25s ease;
+            
+            --font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #0F172A;
+            --bg-secondary: #1E293B;
+            --bg-tertiary: #334155;
+            --bg-card: rgba(30, 41, 59, 0.8);
+            --bg-glass: rgba(15, 23, 42, 0.7);
+            
+            --glass-bg: rgba(30, 41, 59, 0.6);
+            --glass-bg-hover: rgba(51, 65, 85, 0.8);
+            --glass-border: rgba(148, 163, 184, 0.15);
+            --glass-border-hover: rgba(167, 139, 250, 0.4);
+            
+            --text-primary: #F1F5F9;
+            --text-secondary: #CBD5E1;
+            --text-tertiary: #64748B;
+            --text-inverse: #0F172A;
+            
+            --accent-primary: #A78BFA;
+            --accent-primary-hover: #C4B5FD;
+            --accent-secondary: #22D3EE;
+            --accent-tertiary: #F472B6;
+            --accent-success: #34D399;
+            --accent-warning: #FBBF24;
+            --accent-error: #F87171;
+            
+            --gradient-warm: linear-gradient(135deg, #A78BFA 0%, #22D3EE 100%);
+            --gradient-aurora: linear-gradient(135deg, #A78BFA 0%, #F472B6 50%, #22D3EE 100%);
+            
+            --border-light: rgba(148, 163, 184, 0.1);
+            --border-medium: rgba(148, 163, 184, 0.2);
+            
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
+            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
+            --shadow-lift: 0 20px 40px rgba(139, 92, 246, 0.2);
+        }
+
+        body {
+            font-family: var(--font-family);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            transition: background var(--transition-base), color var(--transition-base);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* Header */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+
+        .page-title {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .theme-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-full);
+            border: 1px solid var(--glass-border);
+            background: var(--glass-bg);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: all var(--transition-fast);
+        }
+
+        .theme-toggle:hover {
+            background: var(--glass-bg-hover);
+            border-color: var(--glass-border-hover);
+        }
+
+        /* Filter Pills */
+        .filter-section {
+            margin-bottom: 24px;
+        }
+
+        .filter-label {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-tertiary);
+            margin-bottom: 12px;
+        }
+
+        .filter-pills {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .filter-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: var(--radius-full);
+            border: 1px solid var(--glass-border);
+            background: var(--glass-bg);
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            transition: all var(--transition-fast);
+        }
+
+        .filter-pill:hover {
+            background: var(--glass-bg-hover);
+        }
+
+        .filter-pill.active {
+            border-color: var(--accent-primary);
+            background: var(--glass-bg-hover);
+            color: var(--text-primary);
+        }
+
+        .filter-pill .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .filter-pill[data-goal="all"] .dot {
+            background: var(--gradient-aurora);
+        }
+
+        /* Calendar Card */
+        .calendar-card {
+            background: var(--glass-bg);
+            backdrop-filter: var(--blur-md);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-xl);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        /* Month Navigation */
+        .month-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .month-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .nav-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-light);
+            background: var(--bg-tertiary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: var(--text-secondary);
+            transition: all var(--transition-fast);
+        }
+
+        .nav-btn:hover {
+            background: var(--glass-bg-hover);
+            border-color: var(--glass-border-hover);
+            color: var(--text-primary);
+        }
+
+        /* Calendar Grid */
+        .calendar-weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            margin-bottom: 8px;
+        }
+
+        .weekday {
+            text-align: center;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-tertiary);
+            padding: 8px 0;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            min-height: 80px;
+            border-radius: var(--radius-sm);
+            background: var(--bg-tertiary);
+            border: 1px solid transparent;
+            padding: 8px;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .calendar-day:hover {
+            border-color: var(--glass-border-hover);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .calendar-day.other-month {
+            opacity: 0.3;
+        }
+
+        .calendar-day.today {
+            border-color: var(--accent-primary);
+            background: rgba(232, 168, 124, 0.1);
+        }
+
+        [data-theme="dark"] .calendar-day.today {
+            background: rgba(167, 139, 250, 0.1);
+        }
+
+        .calendar-day.selected {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 2px rgba(232, 168, 124, 0.2);
+        }
+
+        [data-theme="dark"] .calendar-day.selected {
+            box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.2);
+        }
+
+        .day-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 4px;
+        }
+
+        .day-number {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .calendar-day.today .day-number {
+            color: var(--accent-primary);
+        }
+
+        .day-count {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text-tertiary);
+            background: var(--border-light);
+            padding: 2px 6px;
+            border-radius: var(--radius-full);
+        }
+
+        .day-count.complete {
+            background: rgba(140, 179, 105, 0.2);
+            color: var(--accent-success);
+        }
+
+        [data-theme="dark"] .day-count.complete {
+            background: rgba(52, 211, 153, 0.2);
+        }
+
+        /* Goal Indicators */
+        .goal-indicators {
+            display: flex;
+            gap: 3px;
+            flex-wrap: wrap;
+            margin-top: auto;
+            margin-bottom: 4px;
+        }
+
+        .goal-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* Milestone marker */
+        .milestone-marker {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent-warning);
+            box-shadow: 0 0 6px var(--accent-warning);
+        }
+
+        /* Progress bar in day cell */
+        .day-progress {
+            height: 3px;
+            background: var(--border-light);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .day-progress-fill {
+            height: 100%;
+            background: var(--gradient-warm);
+            border-radius: 2px;
+            transition: width var(--transition-base);
+        }
+
+        .day-progress-fill.complete {
+            background: var(--accent-success);
+        }
+
+        /* Day Details Panel */
+        .day-details {
+            background: var(--glass-bg);
+            backdrop-filter: var(--blur-md);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-xl);
+            padding: 24px;
+            margin-bottom: 24px;
+            display: none;
+        }
+
+        .day-details.visible {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .details-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .details-date {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .details-progress {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .details-progress-ring {
+            width: 36px;
+            height: 36px;
+        }
+
+        .details-close {
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius-full);
+            border: none;
+            background: var(--border-light);
+            cursor: pointer;
+            font-size: 18px;
+            color: var(--text-tertiary);
+            transition: all var(--transition-fast);
+        }
+
+        .details-close:hover {
+            background: var(--border-medium);
+            color: var(--text-primary);
+        }
+
+        .details-section {
+            margin-bottom: 16px;
+        }
+
+        .details-section-title {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-tertiary);
+            margin-bottom: 8px;
+        }
+
+        .details-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-sm);
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+
+        .details-item .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .details-item.done {
+            text-decoration: line-through;
+            opacity: 0.6;
+        }
+
+        .details-item .check {
+            margin-left: auto;
+            color: var(--accent-success);
+        }
+
+        .go-to-day-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: var(--gradient-warm);
+            color: var(--text-inverse);
+            border: none;
+            border-radius: var(--radius-full);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            margin-top: 8px;
+        }
+
+        .go-to-day-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lift);
+        }
+
+        /* Timeline Section */
+        .timeline-card {
+            background: var(--glass-bg);
+            backdrop-filter: var(--blur-md);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-xl);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .timeline-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .timeline-goal {
+            margin-bottom: 20px;
+        }
+
+        .timeline-goal:last-child {
+            margin-bottom: 0;
+        }
+
+        .timeline-goal-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .timeline-goal-name {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .timeline-goal-percent {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent-success);
+            margin-left: 4px;
+        }
+
+        .timeline-goal-dates {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            margin-left: auto;
+        }
+
+        .timeline-track {
+            height: 8px;
+            background: var(--border-light);
+            border-radius: 4px;
+            position: relative;
+            overflow: visible;
+        }
+
+        .timeline-progress {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            border-radius: 4px;
+            transition: width var(--transition-base);
+        }
+
+        .timeline-today {
+            position: absolute;
+            top: -4px;
+            width: 2px;
+            height: 16px;
+            background: var(--text-primary);
+            border-radius: 1px;
+            z-index: 2;
+        }
+
+        .timeline-milestones {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            padding-left: 18px;
+            flex-wrap: wrap;
+        }
+
+        .timeline-milestone {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .timeline-milestone .marker {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent-warning);
+        }
+
+        .timeline-milestone.completed .marker {
+            background: var(--accent-success);
+        }
+
+        .timeline-milestone.completed {
+            color: var(--text-tertiary);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 16px;
+            }
+            
+            .calendar-day {
+                min-height: 60px;
+                padding: 4px;
+            }
+            
+            .day-number {
+                font-size: 12px;
+            }
+            
+            .day-count {
+                font-size: 9px;
+                padding: 1px 4px;
+            }
+            
+            .goal-dot {
+                width: 6px;
+                height: 6px;
+            }
+            
+            .page-header {
+                flex-direction: column;
+                gap: 16px;
+                align-items: flex-start;
+            }
+
+            .header-actions {
+                width: 100%;
+                justify-content: flex-end;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="page-header">
+            <h1 class="page-title">Календарь</h1>
+            <div class="header-actions">
+                <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
+            </div>
+        </header>
+
+        <!-- Filter -->
+        <div class="filter-section">
+            <div class="filter-label">Фильтр по целям</div>
+            <div class="filter-pills" id="filterPills"></div>
+        </div>
+
+        <!-- Calendar -->
+        <div class="calendar-card" id="calendarSection">
+            <div class="month-nav">
+                <button class="nav-btn" onclick="changeMonth(-1)">←</button>
+                <span class="month-title" id="monthTitle">Февраль 2026</span>
+                <button class="nav-btn" onclick="changeMonth(1)">→</button>
+            </div>
+
+            <div class="calendar-weekdays">
+                <div class="weekday">Пн</div>
+                <div class="weekday">Вт</div>
+                <div class="weekday">Ср</div>
+                <div class="weekday">Чт</div>
+                <div class="weekday">Пт</div>
+                <div class="weekday">Сб</div>
+                <div class="weekday">Вс</div>
+            </div>
+
+            <div class="calendar-grid" id="calendarGrid"></div>
+        </div>
+
+        <!-- Day Details Panel -->
+        <div class="day-details" id="dayDetails">
+            <div class="details-header">
+                <div>
+                    <span class="details-date" id="detailsDate">6 февраля, пятница</span>
+                </div>
+                <div class="details-progress" id="detailsProgress">
+                    <svg class="details-progress-ring" viewBox="0 0 36 36">
+                        <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                              fill="none" stroke="var(--border-light)" stroke-width="3"/>
+                        <path id="progressArc" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                              fill="none" stroke="var(--accent-success)" stroke-width="3"
+                              stroke-dasharray="33, 100"/>
+                    </svg>
+                    <span id="progressText">1/3</span>
+                </div>
+                <button class="details-close" onclick="closeDayDetails()">×</button>
+            </div>
+            
+            <div class="details-section">
+                <div class="details-section-title">Активные цели</div>
+                <div id="detailsGoals"></div>
+            </div>
+            
+            <div class="details-section">
+                <div class="details-section-title">Задачи на день</div>
+                <div id="detailsTasks"></div>
+            </div>
+
+            <button class="go-to-day-btn" onclick="goToDay()">
+                Перейти к задачам →
+            </button>
+        </div>
+
+        <!-- Timeline -->
+        <div class="timeline-card" id="timelineSection">
+            <div class="timeline-title">Цели и вехи этого месяца</div>
+            <div id="timelineContent"></div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let currentMonth = 1; // February (0-indexed)
+        let currentYear = 2026;
+        let selectedDay = null;
+        let activeFilter = 'all';
+
+        // Mock data - goals with user-defined colors
+        const goals = [
+            { id: 'fitness', name: 'Фитнес Q1', color: '#8CB369', days: [1,2,3,4,5,8,9,10,11,12,15,16,17,18,19,22,23,24,25,26], start: '1 янв', end: '31 мар', progress: 40 },
+            { id: 'learning', name: 'Выучить Python', color: '#85B8CB', days: [2,4,6,9,11,13,16,18,20,23,25,27], start: '15 янв', end: '15 апр', progress: 25 },
+            { id: 'career', name: 'Повышение', color: '#E8A87C', days: [3,6,10,13,17,20,24,27], start: '1 фев', end: '30 июн', progress: 5 }
+        ];
+
+        const milestones = {
+            fitness: [
+                { name: 'Январь: база', completed: true },
+                { name: 'Февраль: интенсив', completed: false },
+                { name: 'Март: результат', completed: false }
+            ],
+            learning: [
+                { name: 'Основы синтаксиса', completed: true },
+                { name: 'ООП', completed: false },
+                { name: 'Проект', completed: false }
+            ],
+            career: [
+                { name: 'Навыки', completed: false },
+                { name: 'Проекты', completed: false },
+                { name: 'Разговор', completed: false }
+            ]
+        };
+
+        const dayMilestones = {
+            15: ['Веха: Февраль интенсив'],
+            28: ['Дедлайн: ООП модуль']
+        };
+
+        const dayTasks = {
+            1: [
+                { title: 'Утренняя пробежка', goal: 'fitness', done: true },
+                { title: 'Глава 1: Введение', goal: 'learning', done: true }
+            ],
+            2: [
+                { title: 'Силовая тренировка', goal: 'fitness', done: true },
+                { title: 'Глава 2: Переменные', goal: 'learning', done: true },
+            ],
+            3: [
+                { title: 'Утренняя пробежка', goal: 'fitness', done: true },
+                { title: 'Составить план развития', goal: 'career', done: true }
+            ],
+            4: [
+                { title: 'Йога', goal: 'fitness', done: true },
+                { title: 'Глава 3: Типы данных', goal: 'learning', done: false }
+            ],
+            5: [
+                { title: 'Утренняя пробежка', goal: 'fitness', done: true },
+                { title: 'Силовая тренировка', goal: 'fitness', done: false }
+            ],
+            6: [
+                { title: 'Утренняя пробежка', goal: 'fitness', done: true },
+                { title: 'Глава 4: Условия', goal: 'learning', done: false },
+                { title: 'Подготовить презентацию', goal: 'career', done: false }
+            ]
+        };
+
+        // Months names
+        const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 
+                          'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+        const weekDays = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            renderFilterPills();
+            renderCalendar();
+            renderTimeline();
+        });
+
+        function renderFilterPills() {
+            const container = document.getElementById('filterPills');
+            container.innerHTML = '';
+            
+            const allPill = document.createElement('button');
+            allPill.className = 'filter-pill active';
+            allPill.dataset.goal = 'all';
+            allPill.innerHTML = `<span class="dot" style="background: var(--gradient-aurora)"></span>Все цели`;
+            allPill.onclick = () => setFilter('all');
+            container.appendChild(allPill);
+            
+            goals.forEach(goal => {
+                const pill = document.createElement('button');
+                pill.className = 'filter-pill';
+                pill.dataset.goal = goal.id;
+                pill.innerHTML = `<span class="dot" style="background: ${goal.color}"></span>${goal.name}`;
+                pill.onclick = () => setFilter(goal.id);
+                container.appendChild(pill);
+            });
+        }
+
+        function setFilter(goalId) {
+            activeFilter = goalId;
+            document.querySelectorAll('.filter-pill').forEach(p => {
+                p.classList.toggle('active', p.dataset.goal === goalId);
+            });
+            renderCalendar();
+            renderTimeline();
+        }
+
+        function renderCalendar() {
+            const grid = document.getElementById('calendarGrid');
+            grid.innerHTML = '';
+            
+            document.getElementById('monthTitle').textContent = `${monthNames[currentMonth]} ${currentYear}`;
+            
+            const firstDay = new Date(currentYear, currentMonth, 1);
+            const lastDay = new Date(currentYear, currentMonth + 1, 0);
+            const startWeekday = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
+            
+            const prevMonthLast = new Date(currentYear, currentMonth, 0).getDate();
+            for (let i = startWeekday - 1; i >= 0; i--) {
+                const day = createDayElement(prevMonthLast - i, true);
+                grid.appendChild(day);
+            }
+            
+            for (let i = 1; i <= lastDay.getDate(); i++) {
+                const day = createDayElement(i, false);
+                grid.appendChild(day);
+            }
+            
+            const remaining = 42 - grid.children.length;
+            for (let i = 1; i <= remaining; i++) {
+                const day = createDayElement(i, true);
+                grid.appendChild(day);
+            }
+        }
+
+        function createDayElement(dayNum, isOtherMonth) {
+            const div = document.createElement('div');
+            div.className = 'calendar-day' + (isOtherMonth ? ' other-month' : '');
+            
+            const isToday = !isOtherMonth && dayNum === 6 && currentMonth === 1 && currentYear === 2026;
+            if (isToday) div.classList.add('today');
+            if (selectedDay === dayNum && !isOtherMonth) div.classList.add('selected');
+            
+            const header = document.createElement('div');
+            header.className = 'day-header';
+            
+            const numSpan = document.createElement('span');
+            numSpan.className = 'day-number';
+            numSpan.textContent = dayNum;
+            header.appendChild(numSpan);
+            
+            if (!isOtherMonth && dayTasks[dayNum]) {
+                const tasks = dayTasks[dayNum];
+                const filteredTasks = activeFilter === 'all' ? tasks : tasks.filter(t => t.goal === activeFilter);
+                if (filteredTasks.length > 0) {
+                    const done = filteredTasks.filter(t => t.done).length;
+                    const total = filteredTasks.length;
+                    const countSpan = document.createElement('span');
+                    countSpan.className = 'day-count' + (done === total ? ' complete' : '');
+                    countSpan.textContent = `${done}/${total}`;
+                    header.appendChild(countSpan);
+                }
+            }
+            
+            div.appendChild(header);
+            
+            if (!isOtherMonth) {
+                const indicators = document.createElement('div');
+                indicators.className = 'goal-indicators';
+                
+                goals.forEach(goal => {
+                    if ((activeFilter === 'all' || activeFilter === goal.id) && goal.days.includes(dayNum)) {
+                        const dot = document.createElement('span');
+                        dot.className = 'goal-dot';
+                        dot.style.background = goal.color;
+                        indicators.appendChild(dot);
+                    }
+                });
+                
+                div.appendChild(indicators);
+                
+                if (dayMilestones[dayNum]) {
+                    const marker = document.createElement('span');
+                    marker.className = 'milestone-marker';
+                    marker.title = dayMilestones[dayNum].join(', ');
+                    div.appendChild(marker);
+                }
+                
+                if (dayTasks[dayNum]) {
+                    const tasks = dayTasks[dayNum];
+                    const filteredTasks = activeFilter === 'all' ? tasks : tasks.filter(t => t.goal === activeFilter);
+                    if (filteredTasks.length > 0) {
+                        const done = filteredTasks.filter(t => t.done).length;
+                        const total = filteredTasks.length;
+                        const progress = document.createElement('div');
+                        progress.className = 'day-progress';
+                        const fill = document.createElement('div');
+                        fill.className = 'day-progress-fill' + (done === total ? ' complete' : '');
+                        fill.style.width = `${(done / total) * 100}%`;
+                        progress.appendChild(fill);
+                        div.appendChild(progress);
+                    }
+                }
+                
+                div.onclick = () => selectDay(dayNum);
+            }
+            
+            return div;
+        }
+
+        function selectDay(day) {
+            selectedDay = day;
+            renderCalendar();
+            showDayDetails(day);
+        }
+
+        function showDayDetails(day) {
+            const panel = document.getElementById('dayDetails');
+            const dateEl = document.getElementById('detailsDate');
+            const goalsEl = document.getElementById('detailsGoals');
+            const tasksEl = document.getElementById('detailsTasks');
+            
+            const date = new Date(currentYear, currentMonth, day);
+            const weekday = weekDays[date.getDay()];
+            dateEl.textContent = `${day} ${monthNames[currentMonth].toLowerCase()}, ${weekday}`;
+            
+            const tasks = dayTasks[day] || [];
+            const filteredTasks = activeFilter === 'all' ? tasks : tasks.filter(t => t.goal === activeFilter);
+            const done = filteredTasks.filter(t => t.done).length;
+            const total = filteredTasks.length;
+            const percent = total > 0 ? Math.round((done / total) * 100) : 0;
+            
+            document.getElementById('progressText').textContent = total > 0 ? `${done}/${total}` : '—';
+            document.getElementById('progressArc').setAttribute('stroke-dasharray', `${percent}, 100`);
+            
+            goalsEl.innerHTML = '';
+            goals.forEach(goal => {
+                if ((activeFilter === 'all' || activeFilter === goal.id) && goal.days.includes(day)) {
+                    const item = document.createElement('div');
+                    item.className = 'details-item';
+                    item.innerHTML = `<span class="dot" style="background: ${goal.color}"></span>${goal.name}`;
+                    goalsEl.appendChild(item);
+                }
+            });
+            
+            if (goalsEl.children.length === 0) {
+                goalsEl.innerHTML = '<div class="details-item" style="color: var(--text-tertiary)">Нет активных целей</div>';
+            }
+            
+            tasksEl.innerHTML = '';
+            if (filteredTasks.length > 0) {
+                filteredTasks.forEach(task => {
+                    const goal = goals.find(g => g.id === task.goal);
+                    const item = document.createElement('div');
+                    item.className = 'details-item' + (task.done ? ' done' : '');
+                    item.innerHTML = `
+                        <span class="dot" style="background: ${goal?.color || '#888'}"></span>
+                        ${task.title}
+                        ${task.done ? '<span class="check">✓</span>' : ''}
+                    `;
+                    tasksEl.appendChild(item);
+                });
+            } else {
+                tasksEl.innerHTML = '<div class="details-item" style="color: var(--text-tertiary)">Нет задач</div>';
+            }
+            
+            panel.classList.add('visible');
+        }
+
+        function closeDayDetails() {
+            document.getElementById('dayDetails').classList.remove('visible');
+            selectedDay = null;
+            renderCalendar();
+        }
+
+        function goToDay() {
+            alert(`Переход на страницу "Ближайшие дни" с фокусом на ${selectedDay} ${monthNames[currentMonth].toLowerCase()}`);
+        }
+
+        function changeMonth(delta) {
+            currentMonth += delta;
+            if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            } else if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            }
+            closeDayDetails();
+            renderCalendar();
+        }
+
+        function renderTimeline() {
+            const container = document.getElementById('timelineContent');
+            container.innerHTML = '';
+            
+            const filteredGoals = activeFilter === 'all' ? goals : goals.filter(g => g.id === activeFilter);
+            
+            filteredGoals.forEach(goal => {
+                const goalEl = document.createElement('div');
+                goalEl.className = 'timeline-goal';
+                
+                goalEl.innerHTML = `
+                    <div class="timeline-goal-header">
+                        <span class="goal-dot" style="background: ${goal.color}"></span>
+                        <span class="timeline-goal-name">${goal.name}</span>
+                        <span class="timeline-goal-percent">${goal.progress}%</span>
+                        <span class="timeline-goal-dates">${goal.start} — ${goal.end}</span>
+                    </div>
+                    <div class="timeline-track">
+                        <div class="timeline-progress" style="width: ${goal.progress}%; background: ${goal.color};"></div>
+                        <div class="timeline-today" style="left: ${goal.progress}%;"></div>
+                    </div>
+                    <div class="timeline-milestones">
+                        ${milestones[goal.id].map(m => `
+                            <div class="timeline-milestone ${m.completed ? 'completed' : ''}">
+                                <span class="marker"></span>
+                                ${m.name}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                
+                container.appendChild(goalEl);
+            });
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const isDark = html.getAttribute('data-theme') === 'dark';
+            html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+            document.querySelector('.theme-toggle').textContent = isDark ? '🌙' : '☀️';
+        }
+    </script>
+</body>
+</html>

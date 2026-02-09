@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Mail, Lock, UserPlus, Check } from 'lucide-react';
 import Button from '@/components/ui/Button';
@@ -8,22 +9,46 @@ import Card from '@/components/ui/Card';
 import Field from '@/components/ui/Field';
 import Input from '@/components/ui/Input';
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
 export default function RegisterPage() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) {
-      alert('Пароли не совпадают');
+      setError('Пароли не совпадают');
       return;
     }
     setIsLoading(true);
-    // Logic for registration will go here
-    console.log('Register with:', email, password);
-    setTimeout(() => setIsLoading(false), 1000);
+    setError('');
+    
+    try {
+      const response = await fetch(`${API_BASE}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.detail || 'Ошибка регистрации');
+      }
+      
+      // После успешной регистрации перенаправляем на логин
+      router.push('/login');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Ошибка регистрации');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const passwordsMatch = password && confirmPassword && password === confirmPassword;
@@ -105,6 +130,12 @@ export default function RegisterPage() {
                 )}
               </div>
             </Field>
+
+            {error && (
+              <div className="p-3 bg-app-danger/10 rounded-xl text-sm text-app-danger font-medium">
+                {error}
+              </div>
+            )}
 
             <Button 
               type="submit" 

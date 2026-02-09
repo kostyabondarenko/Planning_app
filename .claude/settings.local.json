@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mklink:*)",
+      "Bash(cmd /c mklink \"C:\\\\Работа\\\\Развитие\\\\LLM\\\\Planning\\\\Planning_app\\\\CLAUDE.md\" \"C:\\\\Работа\\\\Развитие\\\\LLM\\\\Planning\\\\Planning_app\\\\AGENTS.md\")",
+      "Bash(powershell -Command:*)",
+      "Bash(cmd /c \"mkdir \"C:РаботаРазвитиеLLMPlanningPlanning_app.claudeskillsfastapi-crud\"\")",
+      "Bash(npx next build:*)",
+      "Bash(python -c:*)",
+      "Bash(where:*)",
+      "Bash(python3:*)",
+      "Bash(npx tsc:*)",
+      "Skill(react-forms)",
+      "Bash(PYTHONPATH=\"C:\\\\\\\\Работа\\\\\\\\Развитие\\\\\\\\LLM\\\\\\\\Planning\\\\\\\\Planning_app\\\\\\\\backend\" \"C:\\\\\\\\Работа\\\\\\\\Развитие\\\\\\\\LLM\\\\\\\\Planning\\\\\\\\Planning_app\\\\\\\\backend\\\\\\\\venv\\\\\\\\Scripts\\\\\\\\python.exe\" -m pytest:*)",
+      "Bash(\"C:\\\\\\\\Работа\\\\\\\\Развитие\\\\\\\\LLM\\\\\\\\Planning\\\\\\\\Planning_app\\\\\\\\backend\\\\\\\\venv\\\\\\\\Scripts\\\\\\\\pip.exe\" install:*)",
+      "Bash(\"C:\\\\Работа\\\\Развитие\\\\LLM\\\\Planning\\\\Planning_app\\\\backend\\\\venv\\\\Scripts\\\\pip.exe\" install \"python-jose[cryptography]\" \"passlib[bcrypt]\" \"bcrypt==4.0.1\")",
+      "Bash(\"C:\\\\Работа\\\\Развитие\\\\LLM\\\\Planning\\\\Planning_app\\\\backend\\\\venv\\\\Scripts\\\\pip.exe\" install python-multipart)",
+      "Bash(py -c:*)",
+      "Bash(ls \"C:\\\\Работа\\\\Развитие\\\\LLM\\\\Planning\\\\Planning_app\\\\frontend\\\\src\\\\app\\\\dashboard\\\\calendar\"\" 2>/dev/null || echo \"Directory is empty or doesn 't exist \")",
+      "Bash(python -m pytest:*)",
+      "Bash(py -m pytest tests/test_calendar.py -v)",
+      "Bash(cmd /c \"rmdir /s /q \"\"C:\\\\Работа\\\\Развитие\\\\LLM\\\\Planning\\\\Planning_app\\\\frontend\\\\src\\\\app\\\\dashboard\\\\daily\"\"\")",
+      "Bash(cmd /c \"del /q \"\"C:\\\\Работа\\\\Развитие\\\\LLM\\\\Planning\\\\Planning_app\\\\frontend\\\\src\\\\app\\\\dashboard\\\\daily\\\\page.tsx\"\" && rmdir \"\"C:\\\\Работа\\\\Развитие\\\\LLM\\\\Planning\\\\Planning_app\\\\frontend\\\\src\\\\app\\\\dashboard\\\\daily\"\"\")",
+      "Bash(cmd /c:*)",
+      "Bash(git add backend/ frontend/src/ docs/ plans/ CLAUDE.md .claude/)"
+    ]
+  }
+}

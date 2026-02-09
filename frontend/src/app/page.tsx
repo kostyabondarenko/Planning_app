@@ -37,7 +37,7 @@ export default function Home() {
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
-              href="/dashboard"
+              href="/register"
               className="group inline-flex items-center gap-3 bg-app-accent text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-ios-lg hover:shadow-2xl hover:scale-105 active:scale-95 transition-all duration-200"
             >
               <span>Начать бесплатно</span>
@@ -47,7 +47,7 @@ export default function Home() {
               href="/login"
               className="inline-flex items-center gap-2 text-app-text hover:text-app-accent px-6 py-4 rounded-2xl font-semibold text-lg transition-colors"
             >
-              Уже есть аккаунт?
+              Уже есть аккаунт? Войти
             </Link>
           </div>
         </div>
