@@ -10,11 +10,11 @@ import {
   MilestoneCreate,
   RecurringActionCreate,
   OneTimeActionCreate,
-  WEEKDAY_NAMES,
   Milestone
 } from '@/types/goals';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import WeekdaySelector from '@/components/WeekdaySelector';
 
 interface MilestoneCreateFormProps {
   isOpen: boolean;
@@ -481,13 +481,6 @@ interface RecurringActionCardProps {
 }
 
 function RecurringActionCard({ action, index, errors, onUpdate, onRemove }: RecurringActionCardProps) {
-  const toggleWeekday = (day: number) => {
-    const newWeekdays = action.weekdays.includes(day)
-      ? action.weekdays.filter(d => d !== day)
-      : [...action.weekdays, day].sort((a, b) => a - b);
-    onUpdate({ weekdays: newWeekdays });
-  };
-
   return (
     <div className="form-card-section p-4">
       <div className="flex items-start gap-3">
@@ -512,32 +505,13 @@ function RecurringActionCard({ action, index, errors, onUpdate, onRemove }: Recu
           </div>
 
           {/* Выбор дней недели */}
-          <div>
-            <label className="block text-xs font-semibold text-app-textMuted mb-2 uppercase tracking-wide">
-              Дни недели
-            </label>
-            <div className="flex gap-1.5 flex-wrap">
-              {WEEKDAY_NAMES.map((name, idx) => {
-                const day = idx + 1;
-                const isSelected = action.weekdays.includes(day);
-                return (
-                  <button
-                    key={day}
-                    type="button"
-                    onClick={() => toggleWeekday(day)}
-                    className={`weekday-btn ${isSelected ? 'weekday-btn-active' : 'weekday-btn-inactive'}`}
-                  >
-                    {name}
-                  </button>
-                );
-              })}
-            </div>
-            {errors[`recurring_${action.tempId}_weekdays`] && (
-              <p className="mt-1 text-xs text-app-danger">
-                {errors[`recurring_${action.tempId}_weekdays`]}
-              </p>
-            )}
-          </div>
+          <WeekdaySelector
+            value={action.weekdays}
+            onChange={(weekdays) => onUpdate({ weekdays })}
+            label="Дни недели"
+            allowEmpty
+            error={errors[`recurring_${action.tempId}_weekdays`]}
+          />
         </div>
 
         <button

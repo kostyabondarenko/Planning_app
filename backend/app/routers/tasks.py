@@ -19,11 +19,15 @@ router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 
 
 def _get_user_milestones_query(db: Session, user_id: int):
-    """Базовый запрос вех пользователя (через Goal.user_id)."""
+    """Базовый запрос активных вех пользователя (через Goal.user_id)."""
     return (
         db.query(models.Milestone)
         .join(models.Goal)
-        .filter(models.Goal.user_id == user_id)
+        .filter(
+            models.Goal.user_id == user_id,
+            models.Goal.is_archived == False,
+            models.Milestone.is_archived == False,
+        )
     )
 
 
@@ -48,6 +52,8 @@ def _build_recurring_tasks(
 
     for milestone in milestones:
         for action in milestone.recurring_actions:
+            if action.is_deleted:
+                continue
             # Создаём лог-маппинг: date -> log
             log_by_date = {log.date: log for log in action.logs}
 
@@ -63,6 +69,8 @@ def _build_recurring_tasks(
                             type="recurring",
                             title=action.title,
                             date=current,
+                            goal_id=milestone.goal_id,
+                            goal_title=milestone.goal.title,
                             milestone_id=milestone.id,
                             milestone_title=milestone.title,
                             completed=log.completed if log else False,
@@ -85,6 +93,9 @@ def _build_onetime_tasks(
         .join(models.Goal)
         .filter(
             models.Goal.user_id == user_id,
+            models.Goal.is_archived == False,
+            models.Milestone.is_archived == False,
+            models.OneTimeAction.is_deleted == False,
             models.OneTimeAction.deadline >= start_date,
             models.OneTimeAction.deadline <= end_date,
         )
@@ -99,6 +110,8 @@ def _build_onetime_tasks(
                 type="one-time",
                 title=action.title,
                 date=action.deadline,
+                goal_id=action.milestone.goal_id,
+                goal_title=action.milestone.goal.title,
                 milestone_id=action.milestone_id,
                 milestone_title=action.milestone.title,
                 completed=action.completed,

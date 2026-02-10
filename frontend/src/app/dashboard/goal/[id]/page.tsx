@@ -3,44 +3,64 @@
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { 
-  ArrowLeft, Target, Calendar, Flag, Plus, 
+import {
+  ArrowLeft, Target, Calendar, Flag, Plus,
   CheckCircle2, Circle, TrendingUp, Edit, Trash2,
-  Repeat, CircleDot, Loader2, AlertCircle, ChevronRight, BarChart3
+  Repeat, CircleDot, Loader2, AlertCircle, ChevronRight, BarChart3, Lock
 } from 'lucide-react';
 import Link from 'next/link';
 import ProgressCircle from '@/components/ProgressCircle';
 import MilestoneProgressChart from '@/components/MilestoneProgressChart';
 import Button from '@/components/ui/Button';
 import MilestoneCreateForm from '@/components/MilestoneCreateForm';
+import GoalEditForm from '@/components/GoalEditForm';
+import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog';
+import { showToast } from '@/components/kanban/Toast';
 import { useGoal } from '@/lib/useGoal';
+import { formatDateFull, formatDateShort, roundProgress, getMilestoneDurationDays } from '@/lib/formatDate';
 import { MilestoneCreate, formatWeekdays, Milestone } from '@/types/goals';
 
 export default function GoalDetailPage() {
   const params = useParams();
   const router = useRouter();
   const goalId = params.id as string;
-  
-  const { goal, isLoading, error, createMilestone, deleteMilestone, refetch } = useGoal(goalId);
-  
-  // Состояние модального окна создания вехи
+
+  const { goal, isLoading, error, createMilestone, deleteMilestone, updateGoal, deleteGoal, refetch } = useGoal(goalId);
+
+  // Состояние модальных окон
   const [isCreateMilestoneOpen, setIsCreateMilestoneOpen] = useState(false);
+  const [isEditGoalOpen, setIsEditGoalOpen] = useState(false);
+  const [isDeleteGoalOpen, setIsDeleteGoalOpen] = useState(false);
   const [deletingMilestoneId, setDeletingMilestoneId] = useState<number | null>(null);
+  const [deleteConfirmMilestoneId, setDeleteConfirmMilestoneId] = useState<number | null>(null);
 
   // Обработчик создания вехи
   const handleCreateMilestone = async (data: MilestoneCreate) => {
     await createMilestone(data);
   };
 
+  // Обработчик удаления цели
+  const handleDeleteGoal = async () => {
+    await deleteGoal();
+    showToast('success', 'Цель перемещена в архив');
+    router.push('/dashboard');
+  };
+
+  // Обработчик редактирования цели
+  const handleUpdateGoal = async (data: { title?: string; start_date?: string; end_date?: string }) => {
+    await updateGoal(data);
+    showToast('success', 'Цель обновлена');
+  };
+
   // Обработчик удаления вехи
   const handleDeleteMilestone = async (milestoneId: number) => {
-    if (!confirm('Удалить эту веху и все её действия?')) return;
-    
     setDeletingMilestoneId(milestoneId);
     try {
       await deleteMilestone(milestoneId);
+      showToast('success', 'Веха удалена');
     } finally {
       setDeletingMilestoneId(null);
+      setDeleteConfirmMilestoneId(null);
     }
   };
 
@@ -78,7 +98,7 @@ export default function GoalDetailPage() {
 
   const completedMilestones = goal.milestones.filter(m => m.progress >= m.completion_percent).length;
   const totalActions = goal.milestones.reduce(
-    (sum, m) => sum + m.recurring_actions.length + m.one_time_actions.length, 
+    (sum, m) => sum + m.recurring_actions.length + m.one_time_actions.length,
     0
   );
 
@@ -125,7 +145,7 @@ export default function GoalDetailPage() {
                     {goal.start_date && (
                       <span className="flex items-center gap-1.5">
                         <Calendar size={16} />
-                        {new Date(goal.start_date).toLocaleDateString('ru-RU')} — {goal.end_date ? new Date(goal.end_date).toLocaleDateString('ru-RU') : '...'}
+                        {formatDateFull(goal.start_date)} — {goal.end_date ? formatDateFull(goal.end_date) : '...'}
                       </span>
                     )}
                     {daysUntilDeadline !== null && (
@@ -141,14 +161,18 @@ export default function GoalDetailPage() {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
+                  onClick={() => setIsEditGoalOpen(true)}
                   className="p-2.5 bg-white/20 hover:bg-white/30 rounded-xl transition backdrop-blur-sm tap-target"
+                  title="Редактировать цель"
                 >
                   <Edit size={18} />
                 </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
+                  onClick={() => setIsDeleteGoalOpen(true)}
                   className="p-2.5 bg-white/20 hover:bg-red-500/80 rounded-xl transition backdrop-blur-sm tap-target"
+                  title="Удалить цель"
                 >
                   <Trash2 size={18} />
                 </motion.button>
@@ -172,7 +196,13 @@ export default function GoalDetailPage() {
                   Общий прогресс
                 </h3>
                 <div className="flex justify-center">
-                  <ProgressCircle progress={goal.progress} size={140} strokeWidth={10} />
+                  <ProgressCircle
+                    progress={goal.progress}
+                    size={140}
+                    strokeWidth={10}
+                    isCompleted={goal.is_completed}
+                    displayPercent={Math.round(goal.progress)}
+                  />
                 </div>
 
                 {/* Quick stats */}
@@ -231,7 +261,7 @@ export default function GoalDetailPage() {
                       index={index}
                       isDeleting={deletingMilestoneId === milestone.id}
                       goalId={goalId}
-                      onDelete={() => handleDeleteMilestone(milestone.id)}
+                      onDelete={() => setDeleteConfirmMilestoneId(milestone.id)}
                     />
                   ))}
                 </div>
@@ -262,6 +292,42 @@ export default function GoalDetailPage() {
         goalStartDate={goal.start_date}
         goalEndDate={goal.end_date}
       />
+
+      {/* Модальное окно редактирования цели */}
+      <GoalEditForm
+        isOpen={isEditGoalOpen}
+        onClose={() => setIsEditGoalOpen(false)}
+        onSubmit={handleUpdateGoal}
+        initialData={{
+          title: goal.title,
+          start_date: goal.start_date,
+          end_date: goal.end_date,
+        }}
+      />
+
+      {/* Диалог подтверждения удаления цели */}
+      <ConfirmDeleteDialog
+        isOpen={isDeleteGoalOpen}
+        onClose={() => setIsDeleteGoalOpen(false)}
+        onConfirm={handleDeleteGoal}
+        title="Удалить цель?"
+        description="Цель будет перемещена в архив. Все вехи и действия сохранятся."
+        confirmText="В архив"
+      />
+
+      {/* Диалог подтверждения удаления вехи */}
+      <ConfirmDeleteDialog
+        isOpen={deleteConfirmMilestoneId !== null}
+        onClose={() => setDeleteConfirmMilestoneId(null)}
+        onConfirm={async () => {
+          if (deleteConfirmMilestoneId !== null) {
+            await handleDeleteMilestone(deleteConfirmMilestoneId);
+          }
+        }}
+        title="Удалить веху?"
+        description="Веха и все её действия будут удалены."
+        confirmText="Удалить"
+      />
     </div>
   );
 }
@@ -281,8 +347,15 @@ interface MilestoneCardProps {
 function MilestoneCard({ milestone, index, isDeleting, goalId, onDelete }: MilestoneCardProps) {
   const router = useRouter();
   const [isExpanded, setIsExpanded] = useState(false);
-  
-  const isCompleted = milestone.progress >= milestone.completion_percent;
+
+  const isCompleted = milestone.progress >= milestone.completion_percent || milestone.is_closed;
+  const durationDays = getMilestoneDurationDays(milestone.start_date, milestone.end_date);
+  const displayProgress = roundProgress(milestone.progress, durationDays);
+  const daysUntilEnd = Math.ceil(
+    (new Date(milestone.end_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+  );
+  const isExpiredMilestone = daysUntilEnd < 0;
+  const needsAttention = isExpiredMilestone && !isCompleted && !milestone.is_closed;
 
   // Переход на страницу вехи
   const handleNavigateToMilestone = () => {
@@ -295,6 +368,11 @@ function MilestoneCard({ milestone, index, isDeleting, goalId, onDelete }: Miles
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1 }}
       className="card-brandbook-glass overflow-hidden"
+      style={needsAttention ? {
+        borderColor: 'color-mix(in srgb, var(--accent-error) 40%, transparent)',
+      } : milestone.is_closed ? {
+        opacity: 0.85,
+      } : undefined}
     >
       {/* Заголовок вехи */}
       <div
@@ -305,26 +383,57 @@ function MilestoneCard({ milestone, index, isDeleting, goalId, onDelete }: Miles
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center gap-4">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isCompleted ? 'bg-app-success' : 'bg-app-accentSoft'}`}>
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+            isCompleted
+              ? 'bg-app-success'
+              : needsAttention
+                ? 'bg-app-danger'
+                : 'bg-app-accentSoft'
+          }`}>
             {isCompleted ? (
               <CheckCircle2 size={20} className="text-white" />
+            ) : needsAttention ? (
+              <AlertCircle size={20} className="text-white" />
             ) : (
               <span className="text-sm font-bold text-app-accent">{index + 1}</span>
             )}
           </div>
           <div>
-            <h3 className="font-semibold text-app-text">{milestone.title}</h3>
-            <p className="text-sm text-app-textMuted">
-              {new Date(milestone.start_date).toLocaleDateString('ru-RU')} — {new Date(milestone.end_date).toLocaleDateString('ru-RU')}
-            </p>
+            <h3 className={`font-semibold ${milestone.is_closed && !isCompleted ? 'text-app-textMuted' : 'text-app-text'}`}>
+              {milestone.title}
+            </h3>
+            <div className="flex items-center gap-2 text-sm text-app-textMuted">
+              <span>{formatDateShort(milestone.start_date)} — {formatDateShort(milestone.end_date)}</span>
+              {milestone.is_closed && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-app-success/10 text-app-success font-medium">
+                  Завершена
+                </span>
+              )}
+              {needsAttention && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-app-danger/10 text-app-danger font-medium">
+                  Просрочена
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
         <div className="flex items-center gap-4">
           {/* Прогресс */}
           <div className="text-right">
-            <p className="text-lg font-bold text-app-text">{Math.round(milestone.progress)}%</p>
-            <p className="text-xs text-app-textMuted">из {milestone.completion_percent}% нужно</p>
+            {isCompleted ? (
+              <p className="text-lg font-bold text-app-success flex items-center gap-1 justify-end">
+                <CheckCircle2 size={16} />
+                {displayProgress}%
+              </p>
+            ) : (
+              <p className={`text-lg font-bold ${needsAttention ? 'text-app-danger' : 'text-app-text'}`}>
+                {displayProgress}%
+              </p>
+            )}
+            {!isCompleted && (
+              <p className="text-xs text-app-textMuted">из {milestone.completion_percent}%</p>
+            )}
           </div>
 
           {/* Кнопка перехода */}
@@ -364,7 +473,11 @@ function MilestoneCard({ milestone, index, isDeleting, goalId, onDelete }: Miles
             className="h-full rounded-full transition-all duration-500"
             style={{
               width: `${Math.min(milestone.progress, 100)}%`,
-              background: isCompleted ? 'var(--accent-success)' : 'var(--gradient-warm)',
+              background: isCompleted
+                ? 'var(--accent-success)'
+                : needsAttention
+                  ? 'var(--accent-error)'
+                  : 'var(--gradient-warm)',
             }}
           />
         </div>
@@ -397,7 +510,13 @@ function MilestoneCard({ milestone, index, isDeleting, goalId, onDelete }: Miles
                       <p className="text-xs text-app-textMuted">{formatWeekdays(action.weekdays)}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-bold text-app-success">{Math.round(action.completion_percent)}%</p>
+                      <p className={`text-sm font-bold ${
+                        action.completion_percent >= 100 ? 'text-app-success' :
+                        action.completion_percent >= 80 ? 'text-app-success' :
+                        action.completion_percent >= 50 ? 'text-app-warning' : 'text-app-textMuted'
+                      }`}>
+                        {action.completion_percent >= 100 ? '100%' : `${roundProgress(action.completion_percent, durationDays)}%`}
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -413,7 +532,12 @@ function MilestoneCard({ milestone, index, isDeleting, goalId, onDelete }: Miles
                 Однократные действия
               </h4>
               <div className="space-y-2">
-                {milestone.one_time_actions.map((action) => (
+                {[...milestone.one_time_actions]
+                  .sort((a, b) => {
+                    if (a.completed !== b.completed) return a.completed ? 1 : -1;
+                    return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
+                  })
+                  .map((action) => (
                   <div
                     key={action.id}
                     className="flex items-center justify-between p-3 rounded-xl"
@@ -430,7 +554,7 @@ function MilestoneCard({ milestone, index, isDeleting, goalId, onDelete }: Miles
                       </p>
                     </div>
                     <p className="text-xs text-app-textMuted">
-                      до {new Date(action.deadline).toLocaleDateString('ru-RU')}
+                      до {formatDateShort(action.deadline)}
                     </p>
                   </div>
                 ))}

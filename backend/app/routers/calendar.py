@@ -30,17 +30,33 @@ def _get_goal_color(goal_index: int) -> str:
     return GOAL_COLORS[goal_index % len(GOAL_COLORS)]
 
 
-def _get_user_goals(db: Session, user_id: int) -> List[models.Goal]:
+def _get_user_goals(
+    db: Session, user_id: int, include_archived: bool = False
+) -> List[models.Goal]:
     """Получить все цели v2 пользователя (с датами)."""
-    return (
+    query = (
         db.query(models.Goal)
         .filter(
             models.Goal.user_id == user_id,
             models.Goal.start_date.isnot(None),
         )
-        .order_by(models.Goal.id)
-        .all()
     )
+    if not include_archived:
+        query = query.filter(models.Goal.is_archived == False)
+    return query.order_by(models.Goal.id).all()
+
+
+def _parse_goal_ids(goal_ids: Optional[str], goal_id: Optional[int] = None) -> Optional[set[int]]:
+    """Парсинг фильтра целей. goal_ids (через запятую) имеет приоритет над goal_id."""
+    if goal_ids is not None:
+        try:
+            ids = {int(x.strip()) for x in goal_ids.split(",") if x.strip()}
+            return ids if ids else None
+        except ValueError:
+            return None
+    if goal_id is not None:
+        return {goal_id}
+    return None
 
 
 def _build_goal_color_map(goals: List[models.Goal]) -> dict[int, str]:
@@ -64,6 +80,8 @@ def _get_recurring_tasks_for_date(
     weekday_num = d.weekday() + 1  # 1=Пн, 7=Вс
 
     for action in milestone.recurring_actions:
+        if action.is_deleted:
+            continue
         if weekday_num in action.weekdays:
             # Проверяем что дата в пределах вехи
             if milestone.start_date <= d <= milestone.end_date:
@@ -81,6 +99,8 @@ def _get_onetime_tasks_for_date(
     """Получить однократные задачи для конкретной даты."""
     results = []
     for action in milestone.one_time_actions:
+        if action.is_deleted:
+            continue
         if action.deadline == d:
             results.append((action, action.completed))
     return results
@@ -95,20 +115,21 @@ def _get_onetime_tasks_for_date(
 def get_calendar_month(
     year: int = Query(..., ge=2000, le=2100),
     month: int = Query(..., ge=1, le=12),
-    goal_id: Optional[int] = Query(None, description="Фильтр по цели"),
+    goal_id: Optional[int] = Query(None, description="Фильтр по одной цели (обратная совместимость)"),
+    goal_ids: Optional[str] = Query(None, description="Фильтр по нескольким целям (через запятую, напр. 1,2,3)"),
+    include_archived: bool = Query(False, description="Включить архивные цели"),
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ):
     """Получить данные календаря за месяц."""
     # Получаем все цели пользователя
-    all_goals = _get_user_goals(db, current_user.id)
+    all_goals = _get_user_goals(db, current_user.id, include_archived=include_archived)
     color_map = _build_goal_color_map(all_goals)
 
-    # Фильтрация по goal_id
-    if goal_id is not None:
-        goals = [g for g in all_goals if g.id == goal_id]
-        if not goals:
-            raise HTTPException(status_code=404, detail="Goal not found")
+    # Фильтрация по goal_ids (приоритет) или goal_id (обратная совместимость)
+    filter_ids = _parse_goal_ids(goal_ids, goal_id)
+    if filter_ids is not None:
+        goals = [g for g in all_goals if g.id in filter_ids]
     else:
         goals = all_goals
 
@@ -138,6 +159,8 @@ def get_calendar_month(
             goal_has_tasks = False
 
             for milestone in goal.milestones:
+                if milestone.is_archived:
+                    continue
                 # Проверяем вехи с дедлайном в этот день
                 if milestone.end_date == current and not has_milestone:
                     has_milestone = True
@@ -188,18 +211,19 @@ def get_calendar_month(
 @router.get("/day/{day_date}", response_model=schemas.CalendarDayResponse)
 def get_calendar_day(
     day_date: date,
-    goal_id: Optional[int] = Query(None, description="Фильтр по цели"),
+    goal_id: Optional[int] = Query(None, description="Фильтр по одной цели (обратная совместимость)"),
+    goal_ids: Optional[str] = Query(None, description="Фильтр по нескольким целям (через запятую)"),
+    include_archived: bool = Query(False, description="Включить архивные цели"),
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ):
     """Получить детальную информацию о дне."""
-    all_goals = _get_user_goals(db, current_user.id)
+    all_goals = _get_user_goals(db, current_user.id, include_archived=include_archived)
     color_map = _build_goal_color_map(all_goals)
 
-    if goal_id is not None:
-        goals = [g for g in all_goals if g.id == goal_id]
-        if not goals:
-            raise HTTPException(status_code=404, detail="Goal not found")
+    filter_ids = _parse_goal_ids(goal_ids, goal_id)
+    if filter_ids is not None:
+        goals = [g for g in all_goals if g.id in filter_ids]
     else:
         goals = all_goals
 
@@ -223,6 +247,8 @@ def get_calendar_day(
         goal_has_tasks = False
 
         for milestone in goal.milestones:
+            if milestone.is_archived:
+                continue
             # Вехи с дедлайном в этот день
             if milestone.end_date == day_date:
                 milestones.append(
@@ -288,18 +314,19 @@ def get_calendar_day(
 def get_calendar_timeline(
     year: int = Query(..., ge=2000, le=2100),
     month: int = Query(..., ge=1, le=12),
-    goal_id: Optional[int] = Query(None, description="Фильтр по цели"),
+    goal_id: Optional[int] = Query(None, description="Фильтр по одной цели (обратная совместимость)"),
+    goal_ids: Optional[str] = Query(None, description="Фильтр по нескольким целям (через запятую)"),
+    include_archived: bool = Query(False, description="Включить архивные цели"),
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ):
     """Получить timeline целей для месяца."""
-    all_goals = _get_user_goals(db, current_user.id)
+    all_goals = _get_user_goals(db, current_user.id, include_archived=include_archived)
     color_map = _build_goal_color_map(all_goals)
 
-    if goal_id is not None:
-        goals = [g for g in all_goals if g.id == goal_id]
-        if not goals:
-            raise HTTPException(status_code=404, detail="Goal not found")
+    filter_ids = _parse_goal_ids(goal_ids, goal_id)
+    if filter_ids is not None:
+        goals = [g for g in all_goals if g.id in filter_ids]
     else:
         goals = all_goals
 
@@ -323,12 +350,18 @@ def get_calendar_timeline(
 
         milestone_views = []
         for ms in goal.milestones:
+            if ms.is_archived:
+                continue
             ms_progress = calculate_milestone_progress(ms)
             milestone_views.append(
                 schemas.TimelineMilestone(
                     id=ms.id,
                     title=ms.title,
                     completed=ms.is_closed or ms_progress >= ms.completion_percent,
+                    start_date=ms.start_date,
+                    end_date=ms.end_date,
+                    progress_percent=round(ms_progress, 1),
+                    goal_id=goal.id,
                 )
             )
 

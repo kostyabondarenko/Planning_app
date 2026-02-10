@@ -8,6 +8,8 @@ export interface TaskView {
   type: 'recurring' | 'one-time';
   title: string;
   date: string; // YYYY-MM-DD
+  goal_id: number;
+  goal_title: string;
   milestone_id: number;
   milestone_title: string;
   completed: boolean;

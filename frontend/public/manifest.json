@@ -4,8 +4,8 @@
   "description": "Управляй своими целями и достигай большего",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#F2F2F7",
-  "theme_color": "#007AFF",
+  "background_color": "#FFFBF7",
+  "theme_color": "#E8A87C",
   "orientation": "portrait",
   "icons": [
     {

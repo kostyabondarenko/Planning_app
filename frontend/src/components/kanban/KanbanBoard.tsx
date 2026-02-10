@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { Minus, Plus } from 'lucide-react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { Minus, Plus, CalendarDays } from 'lucide-react';
 import {
   DndContext,
   DragOverlay,
@@ -21,7 +21,8 @@ import DayColumn from './DayColumn';
 import TaskCard from './TaskCard';
 import AddTaskModal from './AddTaskModal';
 import KanbanSkeleton from './KanbanSkeleton';
-import { ToastContainer, showToast } from './Toast';
+import GoalFilterMulti from './GoalFilterMulti';
+import { showToast } from './Toast';
 
 const STORAGE_KEY = 'kanban-days-count';
 const DEFAULT_DAYS = 7;
@@ -53,9 +54,13 @@ function getSavedDaysCount(): number {
 
 export default function KanbanBoard() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [daysCount, setDaysCount] = useState(DEFAULT_DAYS);
   const [activeTask, setActiveTask] = useState<TaskView | null>(null);
   const [addModalDate, setAddModalDate] = useState<string | null>(null);
+  const [todayHighlight, setTodayHighlight] = useState(false);
+  const [selectedGoalIds, setSelectedGoalIds] = useState<Set<number>>(new Set());
+  const boardRef = useRef<HTMLDivElement>(null);
 
   // Инициализация из localStorage (только на клиенте)
   useEffect(() => {
@@ -90,16 +95,22 @@ export default function KanbanBoard() {
 
   const { tasks, isLoading, error, refetch, toggleComplete, rescheduleTask, createTask } = useTasks(startDate, endDate);
 
+  // Фильтрация задач по выбранным целям
+  const filteredTasks = useMemo(() => {
+    if (selectedGoalIds.size === 0) return tasks;
+    return tasks.filter((t) => selectedGoalIds.has(t.goal_id));
+  }, [tasks, selectedGoalIds]);
+
   // Группировка задач по дате
   const tasksByDate = useMemo(() => {
     const map = new Map<string, TaskView[]>();
-    for (const task of tasks) {
+    for (const task of filteredTasks) {
       const key = task.date;
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(task);
     }
     return map;
-  }, [tasks]);
+  }, [filteredTasks]);
 
   // DnD sensors
   const sensors = useSensors(
@@ -165,6 +176,26 @@ export default function KanbanBoard() {
     });
   };
 
+  const handleScrollToToday = useCallback(() => {
+    const todayKey = formatDateISO(today);
+
+    // Если сегодняшний день не в видимом диапазоне — сбрасываем date-параметр
+    const firstDate = formatDateISO(dates[0]);
+    const lastDate = formatDateISO(dates[dates.length - 1]);
+    if (todayKey < firstDate || todayKey > lastDate) {
+      router.push('/dashboard/upcoming');
+      return;
+    }
+
+    if (!boardRef.current) return;
+    const todayCol = boardRef.current.querySelector(`[data-date="${todayKey}"]`);
+    if (todayCol) {
+      todayCol.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      setTodayHighlight(true);
+      setTimeout(() => setTodayHighlight(false), 1500);
+    }
+  }, [today, dates, router]);
+
   const handleAddTask = useCallback((dateKey: string) => {
     setAddModalDate(dateKey);
   }, []);
@@ -186,7 +217,29 @@ export default function KanbanBoard() {
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Ближайшие дни</h1>
 
-        <div className="days-selector">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleScrollToToday}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+            style={{
+              color: 'var(--text-secondary)',
+              background: 'var(--glass-bg)',
+              border: '1px solid var(--glass-border)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'var(--glass-bg-hover)';
+              e.currentTarget.style.color = 'var(--accent-primary)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'var(--glass-bg)';
+              e.currentTarget.style.color = 'var(--text-secondary)';
+            }}
+          >
+            <CalendarDays size={14} />
+            Сегодня
+          </button>
+
+          <div className="days-selector">
           <button
             onClick={() => handleDaysChange(-1)}
             disabled={daysCount <= MIN_DAYS}
@@ -213,7 +266,14 @@ export default function KanbanBoard() {
             <Plus size={14} />
           </button>
         </div>
+        </div>
       </div>
+
+      {/* Фильтр по целям */}
+      <GoalFilterMulti
+        selectedGoalIds={selectedGoalIds}
+        onChange={setSelectedGoalIds}
+      />
 
       {/* Skeleton при загрузке */}
       {isLoading && <KanbanSkeleton columnsCount={Math.min(daysCount, 5)} />}
@@ -268,19 +328,22 @@ export default function KanbanBoard() {
             },
           }}
         >
-          <div className="kanban-board">
+          <div className="kanban-board" ref={boardRef}>
             {dates.map((date) => {
               const dateKey = formatDateISO(date);
+              const isToday = isSameDay(date, today);
               return (
-                <DayColumn
-                  key={dateKey}
-                  date={date}
-                  dateKey={dateKey}
-                  tasks={tasksByDate.get(dateKey) || []}
-                  isToday={isSameDay(date, today)}
-                  onToggleComplete={handleToggleComplete}
-                  onAddTask={handleAddTask}
-                />
+                <div key={dateKey} data-date={dateKey}>
+                  <DayColumn
+                    date={date}
+                    dateKey={dateKey}
+                    tasks={tasksByDate.get(dateKey) || []}
+                    isToday={isToday}
+                    highlight={isToday && todayHighlight}
+                    onToggleComplete={handleToggleComplete}
+                    onAddTask={handleAddTask}
+                  />
+                </div>
               );
             })}
           </div>
@@ -300,8 +363,6 @@ export default function KanbanBoard() {
         onClose={() => setAddModalDate(null)}
         onSubmit={handleCreateTask}
       />
-
-      <ToastContainer />
     </div>
   );
 }

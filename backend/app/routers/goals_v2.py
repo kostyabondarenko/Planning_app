@@ -3,9 +3,9 @@ API v2 для целей, вех и действий.
 Реализует функциональность страницы "Цели" (002-goals-page).
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from datetime import date, datetime
 from .. import models, schemas, auth, database
 
@@ -99,20 +99,24 @@ def calculate_recurring_action_progress(
 
 
 def calculate_milestone_progress(milestone: models.Milestone) -> float:
-    """Рассчитать общий прогресс вехи."""
+    """Рассчитать общий прогресс вехи (игнорируя удалённые действия)."""
     total_weight = 0
     total_progress = 0.0
 
-    # Регулярные действия
+    # Регулярные действия (только активные)
     for action in milestone.recurring_actions:
+        if action.is_deleted:
+            continue
         progress = calculate_recurring_action_progress(
             action, milestone.start_date, milestone.end_date
         )
         total_weight += 1
         total_progress += progress
 
-    # Однократные действия
+    # Однократные действия (только активные)
     for action in milestone.one_time_actions:
+        if action.is_deleted:
+            continue
         total_weight += 1
         if action.completed:
             total_progress += 100.0
@@ -124,14 +128,16 @@ def calculate_milestone_progress(milestone: models.Milestone) -> float:
 
 
 def calculate_goal_progress(goal: models.Goal) -> tuple[float, bool]:
-    """Рассчитать общий прогресс цели и статус завершения."""
-    if not goal.milestones:
+    """Рассчитать общий прогресс цели и статус завершения (игнорируя архивные вехи)."""
+    active_milestones = [ms for ms in goal.milestones if not ms.is_archived]
+
+    if not active_milestones:
         return 0.0, False
 
     total_progress = 0.0
     all_completed = True
 
-    for milestone in goal.milestones:
+    for milestone in active_milestones:
         ms_progress = calculate_milestone_progress(milestone)
         total_progress += ms_progress
 
@@ -139,8 +145,31 @@ def calculate_goal_progress(goal: models.Goal) -> tuple[float, bool]:
         if ms_progress < milestone.completion_percent:
             all_completed = False
 
-    avg_progress = total_progress / len(goal.milestones)
+    avg_progress = total_progress / len(active_milestones)
     return avg_progress, all_completed
+
+
+def _goal_to_response(goal: models.Goal, include_archived_milestones: bool = False) -> schemas.GoalV2Response:
+    """Преобразовать модель цели в response-схему."""
+    progress, is_completed = calculate_goal_progress(goal)
+
+    milestones = goal.milestones
+    if not include_archived_milestones:
+        milestones = [ms for ms in milestones if not ms.is_archived]
+
+    return schemas.GoalV2Response(
+        id=goal.id,
+        user_id=goal.user_id,
+        title=goal.title,
+        start_date=goal.start_date,
+        end_date=goal.end_date,
+        created_at=goal.created_at,
+        milestones=[_milestone_to_response(ms) for ms in milestones],
+        progress=progress,
+        is_completed=is_completed,
+        is_archived=goal.is_archived,
+        archived_at=goal.archived_at,
+    )
 
 
 # ============================================
@@ -206,55 +235,27 @@ def create_goal(
     db.commit()
     db.refresh(new_goal)
 
-    # Добавляем вычисляемые поля
-    progress, is_completed = calculate_goal_progress(new_goal)
-
-    return schemas.GoalV2Response(
-        id=new_goal.id,
-        user_id=new_goal.user_id,
-        title=new_goal.title,
-        start_date=new_goal.start_date,
-        end_date=new_goal.end_date,
-        created_at=new_goal.created_at,
-        milestones=[_milestone_to_response(ms) for ms in new_goal.milestones],
-        progress=progress,
-        is_completed=is_completed,
-    )
+    return _goal_to_response(new_goal)
 
 
 @router.get("/", response_model=List[schemas.GoalV2Response])
 def list_goals(
+    include_archived: bool = Query(False, description="Включить архивные цели"),
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ):
     """Получить список всех целей пользователя."""
-    goals = (
-        db.query(models.Goal)
-        .filter(
-            models.Goal.user_id == current_user.id,
-            models.Goal.start_date.isnot(None),  # Только цели v2 (с датами)
-        )
-        .all()
+    query = db.query(models.Goal).filter(
+        models.Goal.user_id == current_user.id,
+        models.Goal.start_date.isnot(None),  # Только цели v2 (с датами)
     )
 
-    result = []
-    for goal in goals:
-        progress, is_completed = calculate_goal_progress(goal)
-        result.append(
-            schemas.GoalV2Response(
-                id=goal.id,
-                user_id=goal.user_id,
-                title=goal.title,
-                start_date=goal.start_date,
-                end_date=goal.end_date,
-                created_at=goal.created_at,
-                milestones=[_milestone_to_response(ms) for ms in goal.milestones],
-                progress=progress,
-                is_completed=is_completed,
-            )
-        )
+    if not include_archived:
+        query = query.filter(models.Goal.is_archived == False)
 
-    return result
+    goals = query.all()
+
+    return [_goal_to_response(goal, include_archived_milestones=include_archived) for goal in goals]
 
 
 @router.get("/{goal_id}", response_model=schemas.GoalV2Response)
@@ -265,51 +266,36 @@ def get_goal(
 ):
     """Получить цель по ID."""
     goal = get_goal_or_404(db, goal_id, current_user.id)
-    progress, is_completed = calculate_goal_progress(goal)
-
-    return schemas.GoalV2Response(
-        id=goal.id,
-        user_id=goal.user_id,
-        title=goal.title,
-        start_date=goal.start_date,
-        end_date=goal.end_date,
-        created_at=goal.created_at,
-        milestones=[_milestone_to_response(ms) for ms in goal.milestones],
-        progress=progress,
-        is_completed=is_completed,
-    )
+    return _goal_to_response(goal)
 
 
 @router.put("/{goal_id}", response_model=schemas.GoalV2Response)
 def update_goal(
     goal_id: int,
-    goal_data: schemas.GoalV2Base,
+    goal_data: schemas.GoalV2Update,
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ):
-    """Обновить цель."""
+    """Обновить цель (partial update)."""
     goal = get_goal_or_404(db, goal_id, current_user.id)
 
-    goal.title = goal_data.title
-    goal.start_date = goal_data.start_date
-    goal.end_date = goal_data.end_date
+    # Валидация end_date >= start_date с учётом текущих значений
+    new_start = goal_data.start_date if goal_data.start_date is not None else goal.start_date
+    new_end = goal_data.end_date if goal_data.end_date is not None else goal.end_date
+    if new_start and new_end and new_end < new_start:
+        raise HTTPException(status_code=400, detail="end_date must be after start_date")
+
+    if goal_data.title is not None:
+        goal.title = goal_data.title
+    if goal_data.start_date is not None:
+        goal.start_date = goal_data.start_date
+    if goal_data.end_date is not None:
+        goal.end_date = goal_data.end_date
 
     db.commit()
     db.refresh(goal)
 
-    progress, is_completed = calculate_goal_progress(goal)
-
-    return schemas.GoalV2Response(
-        id=goal.id,
-        user_id=goal.user_id,
-        title=goal.title,
-        start_date=goal.start_date,
-        end_date=goal.end_date,
-        created_at=goal.created_at,
-        milestones=[_milestone_to_response(ms) for ms in goal.milestones],
-        progress=progress,
-        is_completed=is_completed,
-    )
+    return _goal_to_response(goal)
 
 
 @router.delete("/{goal_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -318,10 +304,36 @@ def delete_goal(
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ):
-    """Удалить цель (с каскадным удалением вех и действий)."""
+    """Архивировать цель (soft delete)."""
     goal = get_goal_or_404(db, goal_id, current_user.id)
-    db.delete(goal)
+    goal.is_archived = True
+    goal.archived_at = datetime.utcnow()
     db.commit()
+
+
+@router.put("/{goal_id}/restore", response_model=schemas.GoalV2Response)
+def restore_goal(
+    goal_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    """Восстановить архивную цель."""
+    goal = (
+        db.query(models.Goal)
+        .filter(models.Goal.id == goal_id, models.Goal.user_id == current_user.id)
+        .first()
+    )
+    if not goal:
+        raise HTTPException(status_code=404, detail="Goal not found")
+    if not goal.is_archived:
+        raise HTTPException(status_code=400, detail="Goal is not archived")
+
+    goal.is_archived = False
+    goal.archived_at = None
+    db.commit()
+    db.refresh(goal)
+
+    return _goal_to_response(goal)
 
 
 # ============================================
@@ -332,6 +344,10 @@ def delete_goal(
 def _milestone_to_response(milestone: models.Milestone) -> schemas.MilestoneResponse:
     """Преобразовать модель вехи в response-схему."""
     progress = calculate_milestone_progress(milestone)
+
+    # Фильтруем удалённые действия
+    active_recurring = [ra for ra in milestone.recurring_actions if not ra.is_deleted]
+    active_onetime = [ota for ota in milestone.one_time_actions if not ota.is_deleted]
 
     return schemas.MilestoneResponse(
         id=milestone.id,
@@ -353,7 +369,7 @@ def _milestone_to_response(milestone: models.Milestone) -> schemas.MilestoneResp
                     ra, milestone.start_date, milestone.end_date
                 ),
             )
-            for ra in milestone.recurring_actions
+            for ra in active_recurring
         ],
         one_time_actions=[
             schemas.OneTimeActionResponse(
@@ -365,10 +381,12 @@ def _milestone_to_response(milestone: models.Milestone) -> schemas.MilestoneResp
                 completed_at=ota.completed_at,
                 created_at=ota.created_at,
             )
-            for ota in milestone.one_time_actions
+            for ota in active_onetime
         ],
         progress=progress,
         is_closed=milestone.is_closed,
+        is_archived=milestone.is_archived,
+        archived_at=milestone.archived_at,
     )
 
 
@@ -488,9 +506,10 @@ def delete_milestone(
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ):
-    """Удалить веху."""
+    """Архивировать веху (soft delete)."""
     milestone = get_milestone_or_404(db, milestone_id, current_user.id)
-    db.delete(milestone)
+    milestone.is_archived = True
+    milestone.archived_at = datetime.utcnow()
     db.commit()
 
 
@@ -562,7 +581,28 @@ def close_milestone(
     
     db.commit()
     db.refresh(milestone)
-    
+
+    return _milestone_to_response(milestone)
+
+
+@router.put("/milestones/{milestone_id}/complete", response_model=schemas.MilestoneResponse)
+def complete_milestone(
+    milestone_id: int,
+    data: schemas.MilestoneComplete,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    """Принудительно завершить веху (установить is_closed=True)."""
+    milestone = get_milestone_or_404(db, milestone_id, current_user.id)
+
+    if milestone.is_closed:
+        raise HTTPException(status_code=400, detail="Веха уже закрыта")
+
+    if data.force_complete:
+        milestone.is_closed = True
+        db.commit()
+        db.refresh(milestone)
+
     return _milestone_to_response(milestone)
 
 
@@ -606,13 +646,57 @@ def create_recurring_action(
     )
 
 
+@router.put("/recurring-actions/{action_id}", response_model=schemas.RecurringActionResponse)
+def update_recurring_action(
+    action_id: int,
+    action_data: schemas.RecurringActionUpdate,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    """Обновить регулярное действие (title, weekdays)."""
+    action = (
+        db.query(models.RecurringAction)
+        .join(models.Milestone)
+        .join(models.Goal)
+        .filter(
+            models.RecurringAction.id == action_id,
+            models.Goal.user_id == current_user.id,
+            models.RecurringAction.is_deleted == False,
+        )
+        .first()
+    )
+
+    if not action:
+        raise HTTPException(status_code=404, detail="Recurring action not found")
+
+    if action_data.title is not None:
+        action.title = action_data.title
+    if action_data.weekdays is not None:
+        action.weekdays = action_data.weekdays
+
+    db.commit()
+    db.refresh(action)
+
+    milestone = action.milestone
+    return schemas.RecurringActionResponse(
+        id=action.id,
+        milestone_id=action.milestone_id,
+        title=action.title,
+        weekdays=action.weekdays,
+        created_at=action.created_at,
+        completion_percent=calculate_recurring_action_progress(
+            action, milestone.start_date, milestone.end_date
+        ),
+    )
+
+
 @router.delete("/recurring-actions/{action_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_recurring_action(
     action_id: int,
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ):
-    """Удалить регулярное действие."""
+    """Удалить регулярное действие (soft delete)."""
     action = (
         db.query(models.RecurringAction)
         .join(models.Milestone)
@@ -627,7 +711,7 @@ def delete_recurring_action(
     if not action:
         raise HTTPException(status_code=404, detail="Recurring action not found")
 
-    db.delete(action)
+    action.is_deleted = True
     db.commit()
 
 
@@ -767,7 +851,7 @@ def delete_one_time_action(
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ):
-    """Удалить однократное действие."""
+    """Удалить однократное действие (soft delete)."""
     action = (
         db.query(models.OneTimeAction)
         .join(models.Milestone)
@@ -781,7 +865,7 @@ def delete_one_time_action(
     if not action:
         raise HTTPException(status_code=404, detail="One-time action not found")
 
-    db.delete(action)
+    action.is_deleted = True
     db.commit()
 
 

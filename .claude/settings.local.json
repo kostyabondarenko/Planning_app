@@ -22,7 +22,15 @@
       "Bash(cmd /c \"rmdir /s /q \"\"C:\\\\Работа\\\\Развитие\\\\LLM\\\\Planning\\\\Planning_app\\\\frontend\\\\src\\\\app\\\\dashboard\\\\daily\"\"\")",
       "Bash(cmd /c \"del /q \"\"C:\\\\Работа\\\\Развитие\\\\LLM\\\\Planning\\\\Planning_app\\\\frontend\\\\src\\\\app\\\\dashboard\\\\daily\\\\page.tsx\"\" && rmdir \"\"C:\\\\Работа\\\\Развитие\\\\LLM\\\\Planning\\\\Planning_app\\\\frontend\\\\src\\\\app\\\\dashboard\\\\daily\"\"\")",
       "Bash(cmd /c:*)",
-      "Bash(git add backend/ frontend/src/ docs/ plans/ CLAUDE.md .claude/)"
+      "Bash(git add backend/ frontend/src/ docs/ plans/ CLAUDE.md .claude/)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(\"C:\\\\Users\\\\konst.bondarenko\\\\AppData\\\\Local\\\\Python\\\\bin\\\\python3.exe\" --version)",
+      "Bash(py:*)",
+      "Bash(npm install:*)",
+      "Bash(node:*)",
+      "Bash(npx:*)",
+      "Bash(git -C \"C:\\\\Работа\\\\Развитие\\\\LLM\\\\Planning\\\\Planning_app\" status)"
     ]
   }
 }

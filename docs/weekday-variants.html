@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Goal Navigator — Варианты визуализации дней недели</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-primary: #FFFBF7;
+            --bg-secondary: #FFF8F2;
+            --bg-tertiary: #FFFFFF;
+            --bg-card: rgba(255, 255, 255, 0.7);
+            --bg-glass: rgba(255, 251, 247, 0.6);
+            --glass-bg-hover: rgba(255, 255, 255, 0.8);
+
+            --text-primary: #2D2A26;
+            --text-secondary: #6B645B;
+            --text-tertiary: #9C958B;
+            --text-inverse: #FFFBF7;
+
+            --accent-primary: #E8A87C;
+            --accent-primary-hover: #D9956A;
+            --accent-secondary: #C49BBB;
+            --accent-tertiary: #85B8CB;
+            --accent-success: #8CB369;
+            --accent-warning: #E8B84C;
+            --accent-error: #D9756C;
+
+            --gradient-warm: linear-gradient(135deg, #E8A87C 0%, #D9A7C7 100%);
+            --gradient-aurora: linear-gradient(135deg, #E8A87C 0%, #C49BBB 50%, #85B8CB 100%);
+
+            --border-light: rgba(45, 42, 38, 0.06);
+            --border-medium: rgba(45, 42, 38, 0.12);
+
+            --glass-bg: rgba(255, 251, 247, 0.6);
+            --glass-border: rgba(232, 168, 124, 0.15);
+            --glass-border-hover: rgba(232, 168, 124, 0.3);
+
+            --shadow-sm: 0 2px 8px rgba(45, 42, 38, 0.06);
+            --shadow-md: 0 4px 16px rgba(45, 42, 38, 0.08);
+            --shadow-lg: 0 8px 32px rgba(45, 42, 38, 0.12);
+            --shadow-lift: 0 20px 40px rgba(232, 168, 124, 0.15);
+
+            --blur-md: blur(16px);
+
+            --radius-xs: 6px;
+            --radius-sm: 10px;
+            --radius-md: 14px;
+            --radius-lg: 20px;
+            --radius-xl: 28px;
+            --radius-full: 9999px;
+
+            --transition-fast: 0.15s ease;
+            --transition-base: 0.25s ease;
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #0F172A;
+            --bg-secondary: #1E293B;
+            --bg-tertiary: #334155;
+            --bg-card: rgba(30, 41, 59, 0.8);
+            --bg-glass: rgba(15, 23, 42, 0.7);
+            --glass-bg-hover: rgba(51, 65, 85, 0.8);
+
+            --text-primary: #F1F5F9;
+            --text-secondary: #CBD5E1;
+            --text-tertiary: #64748B;
+            --text-inverse: #0F172A;
+
+            --accent-primary: #A78BFA;
+            --accent-primary-hover: #C4B5FD;
+            --accent-secondary: #22D3EE;
+            --accent-tertiary: #F472B6;
+            --accent-success: #34D399;
+            --accent-warning: #FBBF24;
+            --accent-error: #F87171;
+
+            --gradient-warm: linear-gradient(135deg, #A78BFA 0%, #22D3EE 100%);
+            --gradient-aurora: linear-gradient(135deg, #A78BFA 0%, #F472B6 50%, #22D3EE 100%);
+
+            --border-light: rgba(148, 163, 184, 0.1);
+            --border-medium: rgba(148, 163, 184, 0.2);
+
+            --glass-bg: rgba(30, 41, 59, 0.6);
+            --glass-border: rgba(148, 163, 184, 0.15);
+            --glass-border-hover: rgba(167, 139, 250, 0.4);
+
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
+            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
+            --shadow-lift: 0 20px 40px rgba(139, 92, 246, 0.2);
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            padding: 40px 20px;
+            transition: background var(--transition-base), color var(--transition-base);
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .page-header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .page-title {
+            font-size: 32px;
+            font-weight: 800;
+            margin-bottom: 8px;
+            background: var(--gradient-aurora);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .page-subtitle {
+            font-size: 16px;
+            color: var(--text-tertiary);
+        }
+
+        /* Theme Toggle */
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 16px;
+            background: var(--glass-bg);
+            backdrop-filter: var(--blur-md);
+            -webkit-backdrop-filter: var(--blur-md);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-full);
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            transition: all var(--transition-fast);
+        }
+
+        .theme-toggle:hover {
+            background: var(--glass-bg-hover);
+            border-color: var(--glass-border-hover);
+        }
+
+        .theme-toggle-icon {
+            font-size: 18px;
+        }
+
+        /* Section */
+        .section {
+            margin-bottom: 48px;
+        }
+
+        .section-label {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--accent-primary);
+            background: rgba(232, 168, 124, 0.1);
+            padding: 4px 12px;
+            border-radius: var(--radius-full);
+            margin-bottom: 12px;
+        }
+
+        [data-theme="dark"] .section-label {
+            background: rgba(167, 139, 250, 0.1);
+        }
+
+        .section-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .section-desc {
+            font-size: 14px;
+            color: var(--text-tertiary);
+            margin-bottom: 24px;
+        }
+
+        /* Variant Card */
+        .variant-card {
+            background: var(--glass-bg);
+            backdrop-filter: var(--blur-md);
+            -webkit-backdrop-filter: var(--blur-md);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-xl);
+            padding: 32px;
+            margin-bottom: 20px;
+            transition: all var(--transition-base);
+        }
+
+        .variant-card:hover {
+            border-color: var(--glass-border-hover);
+        }
+
+        .variant-name {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .variant-desc {
+            font-size: 13px;
+            color: var(--text-tertiary);
+            margin-bottom: 20px;
+        }
+
+        .variant-demo-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-tertiary);
+            margin-bottom: 10px;
+        }
+
+        .demo-row {
+            margin-bottom: 20px;
+        }
+
+        .context-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .context-card-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .context-card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .context-card-icon-purple {
+            background: rgba(139, 92, 246, 0.15);
+            color: #8B5CF6;
+        }
+
+        [data-theme="dark"] .context-card-icon-purple {
+            background: rgba(167, 139, 250, 0.15);
+            color: #A78BFA;
+        }
+
+        .context-card-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .context-card-subtitle {
+            font-size: 12px;
+            color: var(--text-tertiary);
+        }
+
+        /* =============================================
+           Вариант A: Календарная сетка
+           ============================================= */
+
+        .weekday-grid {
+            display: flex;
+            gap: 6px;
+        }
+
+        .weekday-grid-cell {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all var(--transition-fast);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .weekday-grid-cell-inactive {
+            background: var(--bg-tertiary);
+            color: var(--text-tertiary);
+            border: 1px solid var(--border-light);
+        }
+
+        .weekday-grid-cell-inactive:hover {
+            border-color: var(--accent-primary);
+            color: var(--text-secondary);
+            background: var(--bg-secondary);
+        }
+
+        .weekday-grid-cell-active {
+            background: var(--accent-primary);
+            color: var(--text-inverse);
+            border: 1px solid transparent;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .weekday-grid-cell-active:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        /* Вариант A — Display mode (просмотр, не редактирование) */
+        .weekday-grid-display .weekday-grid-cell {
+            cursor: default;
+            width: 36px;
+            height: 36px;
+            font-size: 12px;
+        }
+
+        .weekday-grid-display .weekday-grid-cell-inactive:hover {
+            border-color: var(--border-light);
+            color: var(--text-tertiary);
+            background: var(--bg-tertiary);
+        }
+
+        .weekday-grid-display .weekday-grid-cell-active:hover {
+            opacity: 1;
+            transform: none;
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* =============================================
+           Вариант B: Pills / теги
+           ============================================= */
+
+        .weekday-pills {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .weekday-pill {
+            padding: 6px 14px;
+            border-radius: var(--radius-full);
+            font-size: 13px;
+            font-weight: 600;
+            transition: all var(--transition-fast);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .weekday-pill-inactive {
+            background: transparent;
+            color: var(--text-tertiary);
+            border: 1px solid var(--border-light);
+            font-size: 11px;
+            font-weight: 500;
+            padding: 4px 10px;
+            opacity: 0.5;
+        }
+
+        .weekday-pill-inactive:hover {
+            opacity: 0.8;
+            border-color: var(--accent-primary);
+        }
+
+        .weekday-pill-active {
+            background: var(--gradient-warm);
+            color: var(--text-inverse);
+            border: 1px solid transparent;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .weekday-pill-active:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-1px);
+        }
+
+        /* Вариант B — Display mode */
+        .weekday-pills-display .weekday-pill {
+            cursor: default;
+        }
+
+        .weekday-pills-display .weekday-pill-inactive {
+            display: none;
+        }
+
+        .weekday-pills-display .weekday-pill-active:hover {
+            box-shadow: var(--shadow-sm);
+            transform: none;
+        }
+
+        /* =============================================
+           Вариант C: Круговой / компактный
+           ============================================= */
+
+        .weekday-circles {
+            display: flex;
+            gap: 8px;
+        }
+
+        .weekday-circle {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+            transition: all var(--transition-fast);
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+        }
+
+        .weekday-circle-inactive {
+            background: transparent;
+            color: var(--text-tertiary);
+            border: 2px solid var(--border-medium);
+        }
+
+        .weekday-circle-inactive:hover {
+            border-color: var(--accent-primary);
+            color: var(--text-secondary);
+        }
+
+        .weekday-circle-active {
+            background: var(--gradient-warm);
+            color: var(--text-inverse);
+            border: 2px solid transparent;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .weekday-circle-active::after {
+            content: '✓';
+            position: absolute;
+            bottom: -2px;
+            right: -2px;
+            width: 14px;
+            height: 14px;
+            background: var(--accent-success);
+            color: white;
+            border-radius: 50%;
+            font-size: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid var(--bg-secondary);
+        }
+
+        .weekday-circle-active:hover {
+            transform: scale(1.1);
+            box-shadow: var(--shadow-md);
+        }
+
+        /* Вариант C — Display mode */
+        .weekday-circles-display .weekday-circle {
+            cursor: default;
+        }
+
+        .weekday-circles-display .weekday-circle-inactive:hover {
+            border-color: var(--border-medium);
+            color: var(--text-tertiary);
+        }
+
+        .weekday-circles-display .weekday-circle-active:hover {
+            transform: none;
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* =============================================
+           Секция: Варианты подсветки выбранного дня в селекторе
+           ============================================= */
+
+        .selector-variant-row {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 16px;
+        }
+
+        .selector-variant-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        /* Подсветка S1: Градиент + тень + масштаб */
+        .sel-s1-active {
+            background: var(--gradient-warm);
+            color: var(--text-inverse);
+            border: 1px solid transparent;
+            box-shadow: 0 4px 12px rgba(232, 168, 124, 0.35);
+            transform: scale(1.08);
+        }
+
+        [data-theme="dark"] .sel-s1-active {
+            box-shadow: 0 4px 12px rgba(167, 139, 250, 0.35);
+        }
+
+        /* Подсветка S2: Solid + ring */
+        .sel-s2-active {
+            background: var(--accent-primary);
+            color: var(--text-inverse);
+            border: 1px solid transparent;
+            box-shadow: 0 0 0 3px rgba(232, 168, 124, 0.25);
+        }
+
+        [data-theme="dark"] .sel-s2-active {
+            box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.25);
+        }
+
+        /* Подсветка S3: Outline + dot indicator */
+        .sel-s3-active {
+            background: rgba(232, 168, 124, 0.12);
+            color: var(--accent-primary);
+            border: 2px solid var(--accent-primary);
+            position: relative;
+        }
+
+        [data-theme="dark"] .sel-s3-active {
+            background: rgba(167, 139, 250, 0.12);
+        }
+
+        .sel-s3-active::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent-primary);
+        }
+
+        /* Сравнительная таблица */
+        .comparison-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 16px;
+        }
+
+        .comparison-table th {
+            text-align: left;
+            padding: 10px 16px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-tertiary);
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .comparison-table td {
+            padding: 10px 16px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .comparison-table td:first-child {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .badge-rec {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: var(--radius-full);
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            background: rgba(140, 179, 105, 0.15);
+            color: var(--accent-success);
+        }
+
+        [data-theme="dark"] .badge-rec {
+            background: rgba(52, 211, 153, 0.15);
+        }
+
+        /* Current buggy display */
+        .current-bug {
+            background: rgba(217, 117, 108, 0.08);
+            border: 1px dashed var(--accent-error);
+            border-radius: var(--radius-md);
+            padding: 16px 20px;
+            margin-bottom: 16px;
+        }
+
+        .current-bug-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--accent-error);
+            margin-bottom: 8px;
+        }
+
+        .weekday-btn-buggy {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .weekday-btn-buggy-active {
+            background: var(--gradient-warm);
+            color: var(--text-inverse);
+            border: 1px solid transparent;
+        }
+
+        .weekday-btn-buggy-inactive {
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            border: 1px solid var(--glass-border);
+        }
+
+        /* Divider */
+        .divider {
+            height: 1px;
+            background: var(--border-light);
+            margin: 32px 0;
+        }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" onclick="toggleTheme()">
+        <span class="theme-toggle-icon" id="themeIcon">☀️</span>
+        <span id="themeLabel">Light</span>
+    </button>
+
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">Варианты визуализации дней недели</h1>
+            <p class="page-subtitle">Goal Navigator — Brandbook-совместимые варианты для выбора</p>
+        </div>
+
+        <!-- =============================================
+             СЕКЦИЯ 1: Три варианта отображения
+             ============================================= -->
+        <div class="section">
+            <div class="section-label">Отображение расписания</div>
+            <h2 class="section-title">Визуализация дней недели (при просмотре)</h2>
+            <p class="section-desc">Как выглядят запланированные дни в карточке регулярного действия. Кликай по дням для демонстрации.</p>
+
+            <!-- Вариант A -->
+            <div class="variant-card">
+                <div class="variant-name">Вариант A — Календарная сетка <span class="badge-rec">Рекомендуем</span></div>
+                <div class="variant-desc">Все 7 дней всегда видны. Запланированные залиты accent-цветом, незапланированные — border + прозрачный фон. Чёткий, информативный.</div>
+
+                <div class="demo-row">
+                    <div class="variant-demo-label">Режим просмотра (в карточке действия)</div>
+                    <div class="context-card">
+                        <div class="context-card-info">
+                            <div class="context-card-icon context-card-icon-purple">🔄</div>
+                            <div>
+                                <div class="context-card-title">Практика медитации</div>
+                                <div class="context-card-subtitle">5 дней в неделю • 78% выполнено</div>
+                            </div>
+                        </div>
+                        <div class="weekday-grid weekday-grid-display" id="gridDisplayA">
+                            <!-- Заполняется JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="demo-row">
+                    <div class="variant-demo-label">Режим редактирования (кликай для переключения)</div>
+                    <div class="weekday-grid" id="gridEditA">
+                        <!-- Заполняется JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Вариант B -->
+            <div class="variant-card">
+                <div class="variant-name">Вариант B — Pills / теги</div>
+                <div class="variant-desc">Pill-кнопки. Запланированные — gradient-warm фон. Незапланированные — маленькие, приглушённые. В режиме просмотра незапланированные скрыты.</div>
+
+                <div class="demo-row">
+                    <div class="variant-demo-label">Режим просмотра (показаны только выбранные)</div>
+                    <div class="context-card">
+                        <div class="context-card-info">
+                            <div class="context-card-icon context-card-icon-purple">🔄</div>
+                            <div>
+                                <div class="context-card-title">Бег по утрам</div>
+                                <div class="context-card-subtitle">3 дня в неделю • 92% выполнено</div>
+                            </div>
+                        </div>
+                        <div class="weekday-pills weekday-pills-display" id="pillsDisplayB">
+                            <!-- Заполняется JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="demo-row">
+                    <div class="variant-demo-label">Режим редактирования (кликай для переключения)</div>
+                    <div class="weekday-pills" id="pillsEditB">
+                        <!-- Заполняется JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Вариант C -->
+            <div class="variant-card">
+                <div class="variant-name">Вариант C — Круговой / компактный</div>
+                <div class="variant-desc">Круглые иконки 32x32. Запланированные: заливка gradient-warm + галочка-индикатор. Незапланированные: только border.</div>
+
+                <div class="demo-row">
+                    <div class="variant-demo-label">Режим просмотра (в карточке действия)</div>
+                    <div class="context-card">
+                        <div class="context-card-info">
+                            <div class="context-card-icon context-card-icon-purple">🔄</div>
+                            <div>
+                                <div class="context-card-title">Чтение книг</div>
+                                <div class="context-card-subtitle">Ежедневно • 100% выполнено</div>
+                            </div>
+                        </div>
+                        <div class="weekday-circles weekday-circles-display" id="circlesDisplayC">
+                            <!-- Заполняется JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="demo-row">
+                    <div class="variant-demo-label">Режим редактирования (кликай для переключения)</div>
+                    <div class="weekday-circles" id="circlesEditC">
+                        <!-- Заполняется JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- =============================================
+             СЕКЦИЯ 2: Варианты подсветки выбранного дня
+             ============================================= -->
+        <div class="section">
+            <div class="section-label">Подсветка выбора</div>
+            <h2 class="section-title">Варианты стиля активного дня в селекторе</h2>
+            <p class="section-desc">Текущий баг: выбранный день сливается с фоном. Ниже — 3 варианта исправления. Кликай по дням.</p>
+
+            <!-- Текущий баг -->
+            <div class="current-bug">
+                <div class="current-bug-label">Текущее состояние (баг)</div>
+                <div style="display: flex; gap: 6px;">
+                    <button class="weekday-btn-buggy weekday-btn-buggy-active">Пн</button>
+                    <button class="weekday-btn-buggy weekday-btn-buggy-inactive">Вт</button>
+                    <button class="weekday-btn-buggy weekday-btn-buggy-active">Ср</button>
+                    <button class="weekday-btn-buggy weekday-btn-buggy-inactive">Чт</button>
+                    <button class="weekday-btn-buggy weekday-btn-buggy-active">Пт</button>
+                    <button class="weekday-btn-buggy weekday-btn-buggy-inactive">Сб</button>
+                    <button class="weekday-btn-buggy weekday-btn-buggy-inactive">Вс</button>
+                </div>
+                <p style="font-size: 12px; color: var(--accent-error); margin-top: 8px;">
+                    Проблема: недостаточный контраст между active/inactive, нет тени/кольца, не ясно что выбрано.
+                </p>
+            </div>
+
+            <!-- S1: Градиент + тень + масштаб -->
+            <div class="variant-card">
+                <div class="variant-name">S1 — Градиент + тень + масштаб <span class="badge-rec">Рекомендуем</span></div>
+                <div class="variant-desc">Градиент-warm фон, выраженная тень, лёгкий scale(1.08). Максимальная заметность выбора.</div>
+
+                <div class="variant-demo-label">Кликай для переключения</div>
+                <div style="display: flex; gap: 6px;" id="selectorS1">
+                    <!-- Заполняется JS -->
+                </div>
+            </div>
+
+            <!-- S2: Solid + ring -->
+            <div class="variant-card">
+                <div class="variant-name">S2 — Solid + ring</div>
+                <div class="variant-desc">Solid accent-primary фон, кольцо (box-shadow ring) вокруг. Простой, ясный.</div>
+
+                <div class="variant-demo-label">Кликай для переключения</div>
+                <div style="display: flex; gap: 6px;" id="selectorS2">
+                    <!-- Заполняется JS -->
+                </div>
+            </div>
+
+            <!-- S3: Outline + dot -->
+            <div class="variant-card">
+                <div class="variant-name">S3 — Outline + точка-индикатор</div>
+                <div class="variant-desc">Прозрачный фон с тонировкой, жирная border accent, точка снизу. Элегантный, но менее контрастный.</div>
+
+                <div class="variant-demo-label">Кликай для переключения</div>
+                <div style="display: flex; gap: 8px;" id="selectorS3">
+                    <!-- Заполняется JS -->
+                </div>
+            </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Сравнительная таблица -->
+        <div class="section">
+            <div class="section-label">Сравнение</div>
+            <h2 class="section-title">Итоговая таблица</h2>
+            <p class="section-desc">Сравнение вариантов отображения и подсветки.</p>
+
+            <div class="variant-card">
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Вариант</th>
+                            <th>Плюсы</th>
+                            <th>Минусы</th>
+                            <th>Лучше для</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>A — Сетка <span class="badge-rec">Рек.</span></td>
+                            <td>Все дни видны, читаемо, компактно</td>
+                            <td>Занимает фикс. ширину</td>
+                            <td>Просмотр + редактирование</td>
+                        </tr>
+                        <tr>
+                            <td>B — Pills</td>
+                            <td>Экономия места в просмотре, модный стиль</td>
+                            <td>Не видны незапланированные в просмотре</td>
+                            <td>Только просмотр</td>
+                        </tr>
+                        <tr>
+                            <td>C — Круги</td>
+                            <td>Компактность, галочки — понятный паттерн</td>
+                            <td>Мелкий текст, галочки наслаиваются</td>
+                            <td>Компактные списки</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div style="height: 20px;"></div>
+
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Подсветка</th>
+                            <th>Плюсы</th>
+                            <th>Минусы</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>S1 — Градиент+тень <span class="badge-rec">Рек.</span></td>
+                            <td>Максимальная заметность, brandbook-градиент</td>
+                            <td>Чуть "тяжелее" визуально</td>
+                        </tr>
+                        <tr>
+                            <td>S2 — Solid+ring</td>
+                            <td>Чистый, лаконичный, кольцо добавляет контраст</td>
+                            <td>Без градиента менее "фирменный"</td>
+                        </tr>
+                        <tr>
+                            <td>S3 — Outline+dot</td>
+                            <td>Элегантный, лёгкий</td>
+                            <td>Меньше контраста в dark-теме</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const DAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+
+        // Default selections for different demos
+        const defaultA = [1, 2, 3, 4, 5]; // Пн-Пт
+        const defaultB = [1, 3, 5];        // Пн, Ср, Пт
+        const defaultC = [1, 2, 3, 4, 5, 6, 7]; // Все дни
+
+        // State
+        const state = {
+            gridEditA: [...defaultA],
+            pillsEditB: [...defaultB],
+            circlesEditC: [...defaultC],
+            selectorS1: [1, 3, 5],
+            selectorS2: [1, 3, 5],
+            selectorS3: [1, 3, 5],
+        };
+
+        function toggleDay(stateKey, day) {
+            const arr = state[stateKey];
+            const idx = arr.indexOf(day);
+            if (idx >= 0) {
+                if (arr.length <= 1) return; // min 1 day
+                arr.splice(idx, 1);
+            } else {
+                arr.push(day);
+                arr.sort((a, b) => a - b);
+            }
+            renderAll();
+        }
+
+        // Render helpers
+        function renderGridCells(containerId, selected, editable, stateKey) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            DAYS.forEach((name, idx) => {
+                const day = idx + 1;
+                const isActive = selected.includes(day);
+                const cell = document.createElement('div');
+                cell.className = `weekday-grid-cell ${isActive ? 'weekday-grid-cell-active' : 'weekday-grid-cell-inactive'}`;
+                cell.textContent = name;
+                if (editable) {
+                    cell.onclick = () => toggleDay(stateKey, day);
+                }
+                container.appendChild(cell);
+            });
+        }
+
+        function renderPills(containerId, selected, editable, stateKey) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            DAYS.forEach((name, idx) => {
+                const day = idx + 1;
+                const isActive = selected.includes(day);
+                const pill = document.createElement('div');
+                pill.className = `weekday-pill ${isActive ? 'weekday-pill-active' : 'weekday-pill-inactive'}`;
+                pill.textContent = name;
+                if (editable) {
+                    pill.onclick = () => toggleDay(stateKey, day);
+                }
+                container.appendChild(pill);
+            });
+        }
+
+        function renderCircles(containerId, selected, editable, stateKey) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            DAYS.forEach((name, idx) => {
+                const day = idx + 1;
+                const isActive = selected.includes(day);
+                const circle = document.createElement('div');
+                circle.className = `weekday-circle ${isActive ? 'weekday-circle-active' : 'weekday-circle-inactive'}`;
+                circle.textContent = name;
+                if (editable) {
+                    circle.onclick = () => toggleDay(stateKey, day);
+                }
+                container.appendChild(circle);
+            });
+        }
+
+        function renderSelectorVariant(containerId, selected, stateKey, activeClass) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            DAYS.forEach((name, idx) => {
+                const day = idx + 1;
+                const isActive = selected.includes(day);
+                const btn = document.createElement('div');
+                btn.className = 'weekday-grid-cell';
+                if (isActive) {
+                    btn.className += ` ${activeClass}`;
+                } else {
+                    btn.className += ' weekday-grid-cell-inactive';
+                }
+                btn.textContent = name;
+                btn.style.cursor = 'pointer';
+                btn.onclick = () => toggleDay(stateKey, day);
+                container.appendChild(btn);
+            });
+        }
+
+        function renderAll() {
+            // Variant A
+            renderGridCells('gridDisplayA', defaultA, false);
+            renderGridCells('gridEditA', state.gridEditA, true, 'gridEditA');
+
+            // Variant B
+            renderPills('pillsDisplayB', defaultB, false);
+            renderPills('pillsEditB', state.pillsEditB, true, 'pillsEditB');
+
+            // Variant C
+            renderCircles('circlesDisplayC', defaultC, false);
+            renderCircles('circlesEditC', state.circlesEditC, true, 'circlesEditC');
+
+            // Selector variants
+            renderSelectorVariant('selectorS1', state.selectorS1, 'selectorS1', 'sel-s1-active');
+            renderSelectorVariant('selectorS2', state.selectorS2, 'selectorS2', 'sel-s2-active');
+            renderSelectorVariant('selectorS3', state.selectorS3, 'selectorS3', 'sel-s3-active');
+        }
+
+        // Theme toggle
+        function toggleTheme() {
+            const html = document.documentElement;
+            const isDark = html.getAttribute('data-theme') === 'dark';
+            if (isDark) {
+                html.removeAttribute('data-theme');
+                document.getElementById('themeIcon').textContent = '☀️';
+                document.getElementById('themeLabel').textContent = 'Light';
+            } else {
+                html.setAttribute('data-theme', 'dark');
+                document.getElementById('themeIcon').textContent = '🌙';
+                document.getElementById('themeLabel').textContent = 'Dark';
+            }
+        }
+
+        // Init
+        renderAll();
+    </script>
+</body>
+</html>

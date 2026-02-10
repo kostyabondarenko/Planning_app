@@ -4,24 +4,18 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { X, ArrowRight, Check, RefreshCw } from 'lucide-react';
 import { api } from '@/lib/api';
+import { formatDateFull } from '@/lib/formatDate';
 import { CalendarDayResponse } from '@/types/calendar';
 
 interface DayDetailsPanelProps {
   selectedDate: string; // ISO "2026-02-06"
-  goalId: number | null;
+  goalIds: Set<number>;
+  includeArchived?: boolean;
   onClose: () => void;
 }
 
-const MONTH_NAMES_GEN = [
-  'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
-  'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря',
-];
-
 function formatDateTitle(isoDate: string, weekday: string): string {
-  const d = new Date(isoDate + 'T00:00:00');
-  const day = d.getDate();
-  const month = MONTH_NAMES_GEN[d.getMonth()];
-  return `${day} ${month}, ${weekday}`;
+  return `${formatDateFull(isoDate)}, ${weekday}`;
 }
 
 function DayDetailsSkeleton() {
@@ -48,7 +42,8 @@ function DayDetailsSkeleton() {
 
 export default function DayDetailsPanel({
   selectedDate,
-  goalId,
+  goalIds,
+  includeArchived = false,
   onClose,
 }: DayDetailsPanelProps) {
   const router = useRouter();
@@ -56,14 +51,23 @@ export default function DayDetailsPanel({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const goalIdsKey = Array.from(goalIds).sort().join(',');
+
   const fetchDay = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
 
       let endpoint = `/api/calendar/day/${selectedDate}`;
-      if (goalId !== null) {
-        endpoint += `?goal_id=${goalId}`;
+      const params: string[] = [];
+      if (goalIdsKey) {
+        params.push(`goal_ids=${goalIdsKey}`);
+      }
+      if (includeArchived) {
+        params.push('include_archived=true');
+      }
+      if (params.length > 0) {
+        endpoint += '?' + params.join('&');
       }
 
       const result = await api.get<CalendarDayResponse>(endpoint);
@@ -73,7 +77,7 @@ export default function DayDetailsPanel({
     } finally {
       setIsLoading(false);
     }
-  }, [selectedDate, goalId]);
+  }, [selectedDate, goalIdsKey, includeArchived]);
 
   useEffect(() => {
     fetchDay();

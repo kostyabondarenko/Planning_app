@@ -17,6 +17,7 @@ export default function UpcomingPage() {
 
   return (
     <div className="max-w-full mx-auto px-4 sm:px-6 py-6">
+      <title>Ближайшие дни — Goal Navigator</title>
       <Suspense fallback={<KanbanSkeleton columnsCount={5} />}>
         <KanbanBoard />
       </Suspense>

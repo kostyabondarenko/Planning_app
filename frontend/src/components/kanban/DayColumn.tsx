@@ -3,6 +3,7 @@
 import { Plus, CalendarOff } from 'lucide-react';
 import { useDroppable } from '@dnd-kit/core';
 import type { TaskView } from '@/types/tasks';
+import { formatDayColumnDate } from '@/lib/formatDate';
 import TaskCard from './TaskCard';
 
 interface DayColumnProps {
@@ -10,24 +11,21 @@ interface DayColumnProps {
   dateKey: string;
   tasks: TaskView[];
   isToday: boolean;
+  highlight?: boolean;
   onToggleComplete: (task: TaskView) => void;
   onAddTask: (dateKey: string) => void;
 }
 
 const WEEKDAY_SHORT = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
-const MONTH_NAMES = [
-  'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
-  'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря',
-];
 
 function formatDayHeader(date: Date): { weekday: string; dateStr: string } {
   return {
     weekday: WEEKDAY_SHORT[date.getDay()],
-    dateStr: `${date.getDate()} ${MONTH_NAMES[date.getMonth()]}`,
+    dateStr: formatDayColumnDate(date),
   };
 }
 
-export default function DayColumn({ date, dateKey, tasks, isToday, onToggleComplete, onAddTask }: DayColumnProps) {
+export default function DayColumn({ date, dateKey, tasks, isToday, highlight, onToggleComplete, onAddTask }: DayColumnProps) {
   const { weekday, dateStr } = formatDayHeader(date);
 
   const { isOver, setNodeRef } = useDroppable({
@@ -47,7 +45,7 @@ export default function DayColumn({ date, dateKey, tasks, isToday, onToggleCompl
   return (
     <div
       ref={setNodeRef}
-      className={`day-column ${isToday ? 'day-column-today' : ''} ${isOver ? 'day-column-over' : ''}`}
+      className={`day-column ${isToday ? 'day-column-today' : ''} ${isOver ? 'day-column-over' : ''} ${highlight ? 'day-column-highlight' : ''}`}
     >
       {/* Заголовок */}
       <div className="mb-3">

@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="warm" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#E8A87C"/>
+      <stop offset="100%" style="stop-color:#D9756C"/>
+    </linearGradient>
+    <linearGradient id="warmLight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F0C4A8"/>
+      <stop offset="100%" style="stop-color:#E8A87C"/>
+    </linearGradient>
+  </defs>
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="240" fill="url(#warm)"/>
+  <!-- Outer ring -->
+  <circle cx="256" cy="256" r="180" fill="none" stroke="#FFFBF7" stroke-width="20" opacity="0.3"/>
+  <!-- Middle ring -->
+  <circle cx="256" cy="256" r="130" fill="none" stroke="#FFFBF7" stroke-width="16" opacity="0.5"/>
+  <!-- Inner ring -->
+  <circle cx="256" cy="256" r="80" fill="none" stroke="#FFFBF7" stroke-width="14" opacity="0.7"/>
+  <!-- Bullseye center -->
+  <circle cx="256" cy="256" r="36" fill="#FFFBF7"/>
+  <!-- Arrow -->
+  <g transform="rotate(-45, 256, 256)">
+    <line x1="256" y1="256" x2="420" y2="256" stroke="#FFFBF7" stroke-width="12" stroke-linecap="round"/>
+    <polygon points="420,240 452,256 420,272" fill="#FFFBF7"/>
+    <!-- Arrow feathers -->
+    <line x1="400" y1="256" x2="420" y2="236" stroke="#FFFBF7" stroke-width="6" stroke-linecap="round"/>
+    <line x1="400" y1="256" x2="420" y2="276" stroke="#FFFBF7" stroke-width="6" stroke-linecap="round"/>
+  </g>
+</svg>

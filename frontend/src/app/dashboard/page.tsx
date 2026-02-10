@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import { PlusCircle, Target, Calendar, ChevronRight, Loader2 } from 'lucide-react';
 import { useGoals } from '@/lib/useGoals';
+import { formatDateShort } from '@/lib/formatDate';
 import { GoalV2, GoalV2Create, getGoalColor } from '@/types/goals';
 import ProgressRing from '@/components/ProgressRing';
 import Button from '@/components/ui/Button';
@@ -57,6 +58,7 @@ export default function GoalsPage() {
 
   return (
     <div className="min-h-screen p-4 sm:p-6 bg-app-bg">
+      <title>Цели — Goal Navigator</title>
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8 text-center sm:text-left">
@@ -251,11 +253,7 @@ function GoalCard({ goal, colorIndex }: { goal: GoalV2; colorIndex: number }) {
 // Вспомогательные функции
 
 function formatDate(dateStr: string): string {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('ru-RU', { 
-    day: 'numeric', 
-    month: 'short' 
-  });
+  return formatDateShort(dateStr);
 }
 
 function formatGoalsCount(count: number): string {

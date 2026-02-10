@@ -119,6 +119,25 @@ class RecurringActionCreate(RecurringActionBase):
     pass
 
 
+class RecurringActionUpdate(BaseModel):
+    """Обновление регулярного действия (все поля Optional)."""
+
+    title: Optional[str] = None
+    weekdays: Optional[List[int]] = None
+
+    @field_validator("weekdays")
+    @classmethod
+    def validate_weekdays(cls, v: Optional[List[int]]) -> Optional[List[int]]:
+        if v is not None:
+            if not v:
+                raise ValueError("weekdays cannot be empty")
+            for day in v:
+                if day < 1 or day > 7:
+                    raise ValueError("weekdays must be between 1 and 7")
+            return sorted(set(v))
+        return v
+
+
 class RecurringActionResponse(RecurringActionBase):
     id: int
     milestone_id: int
@@ -205,6 +224,12 @@ class MilestoneUpdate(BaseModel):
 
 
 # --- Закрытие вехи ---
+class MilestoneComplete(BaseModel):
+    """Ручная установка завершения вехи."""
+
+    force_complete: bool = True
+
+
 class MilestoneCloseAction(BaseModel):
     """Действие при закрытии вехи, когда условие не выполнено."""
 
@@ -228,6 +253,8 @@ class MilestoneResponse(MilestoneBase):
     one_time_actions: List[OneTimeActionResponse] = []
     progress: float = 0.0  # Вычисляемый общий прогресс вехи
     is_closed: bool = False  # Веха официально закрыта
+    is_archived: bool = False  # Веха в архиве?
+    archived_at: Optional[datetime] = None
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -236,6 +263,26 @@ class GoalV2Base(BaseModel):
     """Базовая схема для новой версии целей (с периодами)."""
 
     title: str
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+
+    @field_validator("end_date")
+    @classmethod
+    def validate_end_date(cls, v: Optional[date], info) -> Optional[date]:
+        if (
+            v
+            and "start_date" in info.data
+            and info.data["start_date"]
+            and v < info.data["start_date"]
+        ):
+            raise ValueError("end_date must be after start_date")
+        return v
+
+
+class GoalV2Update(BaseModel):
+    """Обновление цели (все поля Optional)."""
+
+    title: Optional[str] = None
     start_date: Optional[date] = None
     end_date: Optional[date] = None
 
@@ -267,6 +314,8 @@ class GoalV2Response(GoalV2Base):
     milestones: List[MilestoneResponse] = []
     progress: float = 0.0  # Общий прогресс цели
     is_completed: bool = False  # Все вехи закрыты?
+    is_archived: bool = False  # Цель в архиве?
+    archived_at: Optional[datetime] = None
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -282,6 +331,8 @@ class TaskView(BaseModel):
     type: Literal["recurring", "one-time"]
     title: str
     date: date
+    goal_id: int
+    goal_title: str
     milestone_id: int
     milestone_title: str
     completed: bool
@@ -418,6 +469,10 @@ class TimelineMilestone(BaseModel):
     id: int
     title: str
     completed: bool
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    progress_percent: float = 0.0
+    goal_id: int = 0
 
 
 class TimelineGoal(BaseModel):

@@ -19,6 +19,8 @@ function CalendarPageInner() {
 
 export default function CalendarPage() {
   return (
+    <>
+    <title>Календарь — Goal Navigator</title>
     <Suspense
       fallback={
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: 24 }}>
@@ -30,5 +32,6 @@ export default function CalendarPage() {
     >
       <CalendarPageInner />
     </Suspense>
+    </>
   );
 }

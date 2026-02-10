@@ -59,6 +59,10 @@ export interface TimelineMilestone {
   id: number;
   title: string;
   completed: boolean;
+  start_date?: string;
+  end_date?: string;
+  progress_percent: number;
+  goal_id: number;
 }
 
 // Цель с прогрессом и вехами для timeline

@@ -365,6 +365,41 @@
     flex-shrink: 0;
   }
 
+  /* Multi-select filter pills (Kanban) */
+  .filter-pill--multi {
+    position: relative;
+  }
+
+  .filter-pill--multi.checked {
+    border-color: var(--accent-primary);
+    background: var(--glass-bg-hover);
+    color: var(--text-primary);
+  }
+
+  .filter-check {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    border: 1.5px solid var(--glass-border);
+    background: transparent;
+    color: transparent;
+    transition: all var(--transition-fast);
+    flex-shrink: 0;
+  }
+
+  .filter-check.visible {
+    border-color: var(--accent-primary);
+    background: var(--accent-primary);
+    color: var(--text-inverse);
+  }
+
+  .filter-section--kanban {
+    margin-bottom: 16px;
+  }
+
   /* Calendar Card (glass container) */
   .calendar-card {
     background: var(--glass-bg);
@@ -570,6 +605,116 @@
 
   .cal-day-progress-fill.complete {
     background: var(--accent-success);
+  }
+
+  /* =============================================
+     Calendar Collapsed Bar
+     ============================================= */
+
+  .calendar-collapsed-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 4px 0;
+  }
+
+  .calendar-collapsed-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .calendar-collapsed-icon {
+    color: var(--accent-primary);
+    flex-shrink: 0;
+  }
+
+  .calendar-collapsed-month {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+  }
+
+  .calendar-collapsed-sep {
+    color: var(--text-tertiary);
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .calendar-collapsed-date {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .calendar-collapsed-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .calendar-expand-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: var(--glass-bg);
+    backdrop-filter: var(--blur-md);
+    -webkit-backdrop-filter: var(--blur-md);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-full);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+
+  .calendar-expand-btn:hover {
+    background: var(--glass-bg-hover);
+    border-color: var(--glass-border-hover);
+    color: var(--text-primary);
+  }
+
+  .calendar-expand-btn:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+  }
+
+  @media (max-width: 768px) {
+    .calendar-collapsed-bar {
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .calendar-collapsed-info {
+      flex-basis: 100%;
+    }
+
+    .calendar-collapsed-month {
+      font-size: 14px;
+    }
+
+    .calendar-collapsed-date {
+      font-size: 13px;
+    }
+
+    .calendar-collapsed-actions {
+      width: 100%;
+      justify-content: space-between;
+    }
+
+    .calendar-expand-label {
+      display: none;
+    }
   }
 
   /* =============================================
@@ -794,6 +939,7 @@
     z-index: 2;
   }
 
+  /* --- Legacy milestone pills (fallback when no dates) --- */
   .timeline-milestones {
     display: flex;
     gap: 8px;
@@ -827,6 +973,152 @@
 
   .timeline-milestone.completed {
     color: var(--text-tertiary);
+  }
+
+  /* --- Milestone nested progress bars --- */
+  .ms-bars-container {
+    margin-top: 8px;
+  }
+
+  .ms-bars-track {
+    position: relative;
+    height: 6px;
+    background: var(--border-light);
+    border-radius: 3px;
+  }
+
+  .ms-bar-wrap {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  }
+
+  .ms-bar-wrap:hover {
+    transform: scaleY(1.8);
+    z-index: 3;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .ms-bar-wrap:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+  }
+
+  .ms-bar-wrap.ms-current {
+    z-index: 2;
+  }
+
+  .ms-bar-wrap.ms-current .ms-bar-track {
+    box-shadow: 0 0 0 1px var(--accent-primary);
+  }
+
+  .ms-bar-wrap.ms-completed {
+    opacity: 0.55;
+  }
+
+  .ms-bar-track {
+    width: 100%;
+    height: 100%;
+    background: var(--glass-bg);
+    border-radius: 3px;
+    overflow: hidden;
+    border: 1px solid var(--glass-border);
+  }
+
+  .ms-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width var(--transition-base);
+    opacity: 0.7;
+  }
+
+  .ms-bar-wrap:hover .ms-bar-fill {
+    opacity: 1;
+  }
+
+  /* Tooltip */
+  .ms-tooltip {
+    position: absolute;
+    bottom: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg-card);
+    backdrop-filter: var(--blur-md);
+    -webkit-backdrop-filter: var(--blur-md);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    min-width: 160px;
+    max-width: 240px;
+    z-index: 20;
+    box-shadow: var(--shadow-md);
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  .ms-tooltip-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 4px;
+  }
+
+  .ms-tooltip-check {
+    color: var(--accent-success);
+    flex-shrink: 0;
+  }
+
+  .ms-tooltip-progress {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .ms-tooltip-dates {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    margin-top: 2px;
+  }
+
+  /* Mobile toggle */
+  .ms-toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 8px;
+    padding: 4px 8px;
+    background: none;
+    border: none;
+    font-size: 12px;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    transition: color var(--transition-fast);
+  }
+
+  .ms-toggle-btn:hover {
+    color: var(--text-secondary);
+  }
+
+  /* Desktop: show bars, hide toggle */
+  .ms-bars-desktop {
+    display: block;
+  }
+  .ms-bars-mobile {
+    display: none;
+  }
+
+  @media (max-width: 768px) {
+    .ms-bars-desktop {
+      display: none;
+    }
+    .ms-bars-mobile {
+      display: block;
+    }
   }
 
   /* =============================================
@@ -1125,6 +1417,155 @@
     }
   }
 
+  /* =============================================
+     Archive Toggle & Archived Goals Styles
+     ============================================= */
+
+  /* Toggle switch container */
+  .archive-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: auto;
+  }
+
+  .archive-toggle-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  /* Toggle switch track */
+  .toggle-switch {
+    position: relative;
+    width: 40px;
+    height: 22px;
+    background: var(--border-medium);
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    transition: background var(--transition-fast);
+    border: none;
+    padding: 0;
+    flex-shrink: 0;
+  }
+
+  .toggle-switch:hover {
+    background: var(--text-tertiary);
+  }
+
+  .toggle-switch.active {
+    background: var(--accent-primary);
+  }
+
+  .toggle-switch.active:hover {
+    background: var(--accent-primary-hover);
+  }
+
+  /* Toggle switch thumb */
+  .toggle-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    background: white;
+    border-radius: 50%;
+    transition: transform var(--transition-fast);
+    box-shadow: var(--shadow-xs);
+  }
+
+  .toggle-switch.active .toggle-thumb {
+    transform: translateX(18px);
+  }
+
+  .toggle-switch:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+  }
+
+  /* Archived filter pill — dimmed style */
+  .filter-pill.archived {
+    opacity: 0.55;
+    border-style: dashed;
+  }
+
+  .filter-pill.archived:hover {
+    opacity: 0.8;
+  }
+
+  .filter-pill.archived.active {
+    opacity: 0.85;
+  }
+
+  .filter-pill.archived .archive-icon {
+    width: 14px;
+    height: 14px;
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+  }
+
+  /* Archived goal dots in calendar — reduced opacity */
+  .goal-dot.archived {
+    opacity: 0.4;
+  }
+
+  /* Archived goal in timeline — dimmed */
+  .timeline-goal.archived {
+    opacity: 0.5;
+  }
+
+  .timeline-goal.archived .timeline-goal-name {
+    font-style: italic;
+  }
+
+  /* Archived goal in day details — dimmed */
+  .details-item.archived {
+    opacity: 0.55;
+    font-style: italic;
+  }
+
+  /* Restore button */
+  .restore-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: transparent;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    margin-left: auto;
+  }
+
+  .restore-btn:hover {
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+    background: rgba(232, 168, 124, 0.08);
+  }
+
+  [data-theme="dark"] .restore-btn:hover {
+    background: rgba(167, 139, 250, 0.08);
+  }
+
+  .restore-btn:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+  }
+
+  /* Filter section row layout */
+  .filter-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
   /* Legacy calendar-cell (kept for backwards compat) */
   .calendar-cell {
     width: 44px;
@@ -1186,6 +1627,15 @@
 
   [data-theme="dark"] .day-column-today {
     box-shadow: 0 0 0 1px var(--accent-primary), 0 0 20px rgba(167, 139, 250, 0.15);
+  }
+
+  .day-column-highlight {
+    animation: highlight-pulse 1.5s ease-out;
+  }
+
+  @keyframes highlight-pulse {
+    0% { box-shadow: 0 0 0 3px var(--accent-primary), 0 0 30px rgba(232, 168, 124, 0.3); }
+    100% { box-shadow: 0 0 0 1px var(--accent-primary), 0 0 20px rgba(232, 168, 124, 0.12); }
   }
 
   .day-column-drop-target,
@@ -1557,15 +2007,21 @@
   }
 
   .weekday-btn-inactive:hover {
-    border-color: var(--accent-success);
+    border-color: var(--accent-primary);
     color: var(--text-primary);
+    background: var(--bg-secondary);
   }
 
   .weekday-btn-active {
-    background: var(--accent-success);
+    background: var(--gradient-warm);
     color: var(--text-inverse);
-    border: 1px solid var(--accent-success);
+    border: 1px solid transparent;
     box-shadow: var(--shadow-sm);
+  }
+
+  .weekday-btn-active:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
   }
 
   /* Empty state in forms */

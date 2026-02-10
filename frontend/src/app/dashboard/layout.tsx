@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Target, Calendar, Columns3, Sun, Moon, Monitor } from 'lucide-react';
 import { useTheme } from '@/lib/ThemeProvider';
+import { ToastContainer } from '@/components/kanban/Toast';
 
 export default function DashboardLayout({
   children,
@@ -27,7 +28,7 @@ export default function DashboardLayout({
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-16">
             {/* Logo — gradient text */}
-            <Link href="/" className="flex items-center gap-2 group">
+            <Link href="/dashboard" className="flex items-center gap-2 group">
               <div
                 className="w-9 h-9 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform"
                 style={{
@@ -104,6 +105,7 @@ export default function DashboardLayout({
       </nav>
 
       <main>{children}</main>
+      <ToastContainer />
     </div>
   );
 }

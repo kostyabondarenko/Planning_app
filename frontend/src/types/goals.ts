@@ -57,6 +57,8 @@ export interface GoalV2 {
   milestones: Milestone[];
   progress: number; // Общий прогресс цели
   is_completed: boolean; // Все вехи закрыты?
+  is_archived: boolean; // Цель в архиве?
+  archived_at?: string;
 }
 
 // Данные для создания регулярного действия

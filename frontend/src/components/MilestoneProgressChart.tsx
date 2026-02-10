@@ -1,7 +1,9 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { CheckCircle2, AlertCircle } from 'lucide-react';
 import { Milestone } from '@/types/goals';
+import { formatDateShort, roundProgress, getMilestoneDurationDays } from '@/lib/formatDate';
 
 interface MilestoneProgressChartProps {
   milestones: Milestone[];
@@ -28,9 +30,15 @@ export default function MilestoneProgressChart({ milestones }: MilestoneProgress
   return (
     <div className="space-y-4">
       {sortedMilestones.map((milestone, index) => {
-        const isCompleted = milestone.progress >= milestone.completion_percent;
+        const isCompleted = milestone.progress >= milestone.completion_percent || milestone.is_closed;
         const progressPercent = Math.min(milestone.progress, 100);
         const targetPercent = milestone.completion_percent;
+        const durationDays = getMilestoneDurationDays(milestone.start_date, milestone.end_date);
+        const displayPercent = roundProgress(progressPercent, durationDays);
+        const daysUntilEnd = Math.ceil(
+          (new Date(milestone.end_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+        );
+        const needsAttention = daysUntilEnd < 0 && !isCompleted && !milestone.is_closed;
 
         return (
           <motion.div
@@ -46,23 +54,37 @@ export default function MilestoneProgressChart({ milestones }: MilestoneProgress
                 <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
                   isCompleted
                     ? 'bg-app-success text-white'
-                    : 'bg-app-accentSoft text-app-accent'
+                    : needsAttention
+                      ? 'bg-app-danger text-white'
+                      : 'bg-app-accentSoft text-app-accent'
                 }`}>
-                  {index + 1}
+                  {isCompleted ? <CheckCircle2 size={14} /> : index + 1}
                 </span>
                 <span className="text-sm font-medium text-app-text truncate max-w-[200px]">
                   {milestone.title}
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className={`text-sm font-bold ${
-                  isCompleted ? 'text-app-success' : 'text-app-text'
-                }`}>
-                  {Math.round(progressPercent)}%
-                </span>
-                <span className="text-xs text-app-textMuted">
-                  / {targetPercent}%
-                </span>
+                {isCompleted ? (
+                  <span className="text-sm font-bold text-app-success flex items-center gap-1">
+                    <CheckCircle2 size={14} />
+                    {displayPercent}%
+                  </span>
+                ) : needsAttention ? (
+                  <span className="text-sm font-bold text-app-danger flex items-center gap-1">
+                    <AlertCircle size={14} />
+                    {displayPercent}%
+                  </span>
+                ) : (
+                  <span className="text-sm font-bold text-app-text">
+                    {displayPercent}%
+                  </span>
+                )}
+                {!isCompleted && (
+                  <span className="text-xs text-app-textMuted">
+                    / {targetPercent}%
+                  </span>
+                )}
               </div>
             </div>
 
@@ -85,10 +107,14 @@ export default function MilestoneProgressChart({ milestones }: MilestoneProgress
                 style={{
                   background: isCompleted
                     ? 'var(--accent-success)'
-                    : 'var(--gradient-warm)',
+                    : needsAttention
+                      ? 'var(--accent-error)'
+                      : 'var(--gradient-warm)',
                   boxShadow: isCompleted
                     ? '0 0 10px rgba(140, 179, 105, 0.4)'
-                    : '0 0 10px rgba(232, 168, 124, 0.4)',
+                    : needsAttention
+                      ? '0 0 10px rgba(217, 117, 108, 0.4)'
+                      : '0 0 10px rgba(232, 168, 124, 0.4)',
                 }}
               />
 
@@ -109,8 +135,8 @@ export default function MilestoneProgressChart({ milestones }: MilestoneProgress
 
             {/* Даты */}
             <div className="flex justify-between text-xs text-app-textMuted">
-              <span>{new Date(milestone.start_date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}</span>
-              <span>{new Date(milestone.end_date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}</span>
+              <span>{formatDateShort(milestone.start_date)}</span>
+              <span>{formatDateShort(milestone.end_date)}</span>
             </div>
           </motion.div>
         );

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { RefreshCw, Plus } from 'lucide-react';
 import GoalFilter from './GoalFilter';
@@ -9,11 +9,32 @@ import DayDetailsPanel from './DayDetailsPanel';
 import GoalsTimeline from './GoalsTimeline';
 import { useCalendar } from '@/lib/useCalendar';
 
+const STORAGE_KEY = 'calendar_include_archived';
+
 function toISODate(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
+}
+
+function getInitialArchived(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return localStorage.getItem(STORAGE_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function parseGoalsParam(param: string | null): Set<number> {
+  if (!param) return new Set();
+  try {
+    const ids = param.split(',').map(Number).filter(n => !isNaN(n) && n > 0);
+    return new Set(ids);
+  } catch {
+    return new Set();
+  }
 }
 
 function CalendarGridSkeleton() {
@@ -52,28 +73,43 @@ export default function CalendarView() {
   const now = new Date();
   const initialYear = Number(searchParams.get('year')) || now.getFullYear();
   const initialMonth = Number(searchParams.get('month')) || now.getMonth() + 1;
-  const initialGoal = searchParams.get('goal') ? Number(searchParams.get('goal')) : null;
+  const initialGoals = parseGoalsParam(searchParams.get('goals'));
 
   const [currentYear, setCurrentYear] = useState(initialYear);
   const [currentMonth, setCurrentMonth] = useState(initialMonth);
-  const [activeGoalId, setActiveGoalId] = useState<number | null>(initialGoal);
+  const [activeGoalIds, setActiveGoalIds] = useState<Set<number>>(initialGoals);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [includeArchived, setIncludeArchived] = useState(getInitialArchived);
+  const [isGridCollapsed, setIsGridCollapsed] = useState(false);
 
-  const { days, isLoading, error, refetch } = useCalendar(currentYear, currentMonth, activeGoalId);
+  const { days, isLoading, error, refetch } = useCalendar(currentYear, currentMonth, activeGoalIds, includeArchived);
+
+  // Стабильный ключ для URL
+  const goalIdsKey = useMemo(() => Array.from(activeGoalIds).sort().join(','), [activeGoalIds]);
+
+  // Сохранение includeArchived в localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, String(includeArchived));
+    } catch {
+      // ignore
+    }
+  }, [includeArchived]);
 
   // Синхронизация URL при смене месяца/фильтра
   useEffect(() => {
     const params = new URLSearchParams();
     params.set('year', String(currentYear));
     params.set('month', String(currentMonth));
-    if (activeGoalId !== null) {
-      params.set('goal', String(activeGoalId));
+    if (goalIdsKey) {
+      params.set('goals', goalIdsKey);
     }
     router.replace(`/dashboard/calendar?${params.toString()}`, { scroll: false });
-  }, [currentYear, currentMonth, activeGoalId, router]);
+  }, [currentYear, currentMonth, goalIdsKey, router]);
 
   const handlePrevMonth = useCallback(() => {
     setSelectedDate(null);
+    setIsGridCollapsed(false);
     if (currentMonth === 1) {
       setCurrentMonth(12);
       setCurrentYear((y) => y - 1);
@@ -84,6 +120,7 @@ export default function CalendarView() {
 
   const handleNextMonth = useCallback(() => {
     setSelectedDate(null);
+    setIsGridCollapsed(false);
     if (currentMonth === 12) {
       setCurrentMonth(1);
       setCurrentYear((y) => y + 1);
@@ -94,21 +131,40 @@ export default function CalendarView() {
 
   const handleSelectDay = useCallback((date: Date) => {
     setSelectedDate(toISODate(date));
+    setIsGridCollapsed(true);
   }, []);
 
-  const handleFilterChange = useCallback((goalId: number | null) => {
-    setActiveGoalId(goalId);
+  const handleExpandGrid = useCallback(() => {
+    setIsGridCollapsed(false);
+  }, []);
+
+  const handleFilterChange = useCallback((goalIds: Set<number>) => {
+    setActiveGoalIds(goalIds);
     setSelectedDate(null);
   }, []);
 
   const handleCloseDetails = useCallback(() => {
     setSelectedDate(null);
+    setIsGridCollapsed(false);
+  }, []);
+
+  const handleToggleArchived = useCallback((value: boolean) => {
+    setIncludeArchived(value);
+    // Сбросить фильтр при отключении архивных
+    if (!value) {
+      setActiveGoalIds(new Set());
+    }
   }, []);
 
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: 24 }}>
       {/* Фильтр по целям */}
-      <GoalFilter activeGoalId={activeGoalId} onChange={handleFilterChange} />
+      <GoalFilter
+        activeGoalIds={activeGoalIds}
+        includeArchived={includeArchived}
+        onChange={handleFilterChange}
+        onToggleArchived={handleToggleArchived}
+      />
 
       {/* Календарная сетка */}
       {error ? (
@@ -144,9 +200,11 @@ export default function CalendarView() {
           month={currentMonth}
           days={days}
           selectedDate={selectedDate}
+          isCollapsed={isGridCollapsed}
           onSelectDay={handleSelectDay}
           onPrevMonth={handlePrevMonth}
           onNextMonth={handleNextMonth}
+          onExpand={handleExpandGrid}
         />
       )}
 
@@ -154,7 +212,8 @@ export default function CalendarView() {
       {selectedDate && (
         <DayDetailsPanel
           selectedDate={selectedDate}
-          goalId={activeGoalId}
+          goalIds={activeGoalIds}
+          includeArchived={includeArchived}
           onClose={handleCloseDetails}
         />
       )}
@@ -163,7 +222,8 @@ export default function CalendarView() {
       <GoalsTimeline
         year={currentYear}
         month={currentMonth}
-        goalId={activeGoalId}
+        goalIds={activeGoalIds}
+        includeArchived={includeArchived}
       />
     </div>
   );

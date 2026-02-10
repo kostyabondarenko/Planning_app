@@ -38,6 +38,10 @@ class Goal(Base):
     end_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
 
+    # Soft delete
+    is_archived: Mapped[bool] = mapped_column(default=False)
+    archived_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+
     # Обратные связи
     owner: Mapped["User"] = relationship(back_populates="goals")
     steps: Mapped[List["Step"]] = relationship(
@@ -100,6 +104,10 @@ class Milestone(Base):
     is_closed: Mapped[bool] = mapped_column(default=False)  # Веха официально закрыта
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
 
+    # Soft delete
+    is_archived: Mapped[bool] = mapped_column(default=False)
+    archived_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+
     # Связи
     goal: Mapped["Goal"] = relationship(back_populates="milestones")
     recurring_actions: Mapped[List["RecurringAction"]] = relationship(
@@ -122,6 +130,9 @@ class RecurringAction(Base):
         JSON, nullable=False
     )  # [1,3,5] = пн, ср, пт
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+
+    # Soft delete
+    is_deleted: Mapped[bool] = mapped_column(default=False)
 
     # Связи
     milestone: Mapped["Milestone"] = relationship(back_populates="recurring_actions")
@@ -156,6 +167,9 @@ class OneTimeAction(Base):
     completed: Mapped[bool] = mapped_column(default=False)
     completed_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+
+    # Soft delete
+    is_deleted: Mapped[bool] = mapped_column(default=False)
 
     # Связи
     milestone: Mapped["Milestone"] = relationship(back_populates="one_time_actions")
