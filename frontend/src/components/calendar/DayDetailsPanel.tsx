@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { X, ArrowRight, Check, RefreshCw } from 'lucide-react';
 import { api } from '@/lib/api';
 import { formatDateFull } from '@/lib/formatDate';
-import { CalendarDayResponse } from '@/types/calendar';
+import { CalendarDayResponse, CalendarTaskView } from '@/types/calendar';
 
 interface DayDetailsPanelProps {
   selectedDate: string; // ISO "2026-02-06"
@@ -37,6 +37,41 @@ function DayDetailsSkeleton() {
         <div className="skeleton" style={{ width: '100%', height: 40 }} />
       </div>
     </>
+  );
+}
+
+function TaskProgressInfo({ task }: { task: CalendarTaskView }) {
+  if (task.type !== 'recurring' || task.target_percent == null || task.current_percent == null) {
+    return null;
+  }
+
+  const current = Math.round(task.current_percent);
+  const target = task.target_percent;
+  const isReached = task.is_target_reached === true;
+
+  return (
+    <div className="details-task-progress">
+      <div className="details-task-progress-info">
+        <span className={`details-task-progress-numbers ${isReached ? 'details-task-progress-numbers--done' : ''}`}>
+          {current}% / {target}%
+        </span>
+        {task.completed_count != null && task.expected_count != null && (
+          <span className="details-task-progress-counts">
+            ({task.completed_count} из {task.expected_count})
+          </span>
+        )}
+      </div>
+      <div className="details-task-progress-track">
+        <div
+          className={`details-task-progress-fill ${isReached ? 'details-task-progress-fill--done' : ''}`}
+          style={{ width: `${Math.min(current, 100)}%` }}
+        />
+        <div
+          className="details-task-progress-marker"
+          style={{ left: `${Math.min(target, 100)}%` }}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -197,19 +232,22 @@ export default function DayDetailsPanel({
               data.tasks.map((task) => (
                 <div
                   key={`${task.type}-${task.id}`}
-                  className={`details-item${task.completed ? ' done' : ''}`}
+                  className={`details-item details-task-item${task.completed ? ' done' : ''}`}
                 >
-                  <span
-                    className="dot"
-                    style={{ backgroundColor: task.goal_color }}
-                    aria-hidden="true"
-                  />
-                  {task.title}
-                  {task.completed && (
-                    <span className="check" aria-label="Выполнено">
-                      <Check size={14} />
-                    </span>
-                  )}
+                  <div className="details-task-header">
+                    <span
+                      className="dot"
+                      style={{ backgroundColor: task.goal_color }}
+                      aria-hidden="true"
+                    />
+                    <span className="details-task-title">{task.title}</span>
+                    {task.completed && (
+                      <span className="check" aria-label="Выполнено">
+                        <Check size={14} />
+                      </span>
+                    )}
+                  </div>
+                  <TaskProgressInfo task={task} />
                 </div>
               ))
             ) : (

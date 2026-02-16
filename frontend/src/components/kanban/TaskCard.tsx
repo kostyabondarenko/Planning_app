@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Check, RotateCw, MapPin } from 'lucide-react';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
@@ -13,6 +13,8 @@ interface TaskCardProps {
 }
 
 const TaskCard = React.memo(function TaskCard({ task, onToggleComplete, isOverlay }: TaskCardProps) {
+  const [showTooltip, setShowTooltip] = useState(false);
+
   const {
     attributes,
     listeners,
@@ -30,6 +32,9 @@ const TaskCard = React.memo(function TaskCard({ task, onToggleComplete, isOverla
     cursor: isDragging ? 'grabbing' : 'grab',
   };
 
+  const hasProgress = task.type === 'recurring' && task.target_percent != null && task.current_percent != null;
+  const isTargetReached = task.is_target_reached === true;
+
   return (
     <div
       ref={setNodeRef}
@@ -38,6 +43,8 @@ const TaskCard = React.memo(function TaskCard({ task, onToggleComplete, isOverla
       {...(isOverlay ? {} : listeners)}
       {...(isOverlay ? {} : attributes)}
       aria-roledescription="Перетаскиваемая задача"
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
     >
       {/* Чекбокс */}
       <button
@@ -64,8 +71,49 @@ const TaskCard = React.memo(function TaskCard({ task, onToggleComplete, isOverla
             {task.title}
           </span>
         </div>
-        <span className="task-milestone-badge">{task.milestone_title}</span>
+        <div className="flex items-center gap-2">
+          <span className="task-milestone-badge">{task.milestone_title}</span>
+          {hasProgress && (
+            <span className={`task-progress-badge ${isTargetReached ? 'task-progress-badge--done' : ''}`}>
+              {Math.round(task.current_percent!)}&#47;{task.target_percent}%
+            </span>
+          )}
+        </div>
+
+        {/* Мини прогресс-бар */}
+        {hasProgress && (
+          <div className="task-card-progress-track">
+            <div
+              className={`task-card-progress-fill ${isTargetReached ? 'task-card-progress-fill--done' : ''}`}
+              style={{ width: `${Math.min(task.current_percent!, 100)}%` }}
+            />
+            <div
+              className="task-card-progress-marker"
+              style={{ left: `${Math.min(task.target_percent!, 100)}%` }}
+            />
+          </div>
+        )}
       </div>
+
+      {/* Tooltip */}
+      {showTooltip && hasProgress && (
+        <div className="task-card-tooltip">
+          <div className="task-card-tooltip-title">{task.title}</div>
+          <div className="task-card-tooltip-row">
+            Прогресс: {Math.round(task.current_percent!)}% (цель: {task.target_percent}%)
+          </div>
+          {task.completed_count != null && task.expected_count != null && (
+            <div className="task-card-tooltip-row">
+              Выполнено {task.completed_count} из {task.expected_count} раз
+            </div>
+          )}
+          {isTargetReached && (
+            <div className="task-card-tooltip-row task-card-tooltip-success">
+              Цель достигнута!
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 });

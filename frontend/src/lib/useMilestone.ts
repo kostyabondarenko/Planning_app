@@ -14,6 +14,7 @@ interface MilestoneUpdateData {
 interface RecurringActionUpdateData {
   title?: string;
   weekdays?: number[];
+  target_percent?: number;
 }
 
 interface OneTimeActionUpdateData {

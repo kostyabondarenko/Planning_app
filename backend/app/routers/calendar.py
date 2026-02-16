@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from datetime import date, timedelta
 from typing import List, Optional
 from .. import models, schemas, auth, database
-from .goals_v2 import calculate_goal_progress, calculate_milestone_progress
+from .goals_v2 import calculate_goal_progress, calculate_milestone_progress, calculate_recurring_action_progress
 
 router = APIRouter(prefix="/api/calendar", tags=["calendar"])
 
@@ -262,6 +262,9 @@ def get_calendar_day(
             # Регулярные задачи
             recurring = _get_recurring_tasks_for_date(milestone, day_date)
             for action, completed in recurring:
+                progress_info = calculate_recurring_action_progress(
+                    action, milestone.start_date, milestone.end_date
+                )
                 tasks.append(
                     schemas.CalendarTaskView(
                         id=action.id,
@@ -271,6 +274,11 @@ def get_calendar_day(
                         goal_title=goal.title,
                         goal_color=goal_color,
                         completed=completed,
+                        target_percent=action.target_percent,
+                        current_percent=progress_info["current_percent"],
+                        is_target_reached=progress_info["is_target_reached"],
+                        completed_count=progress_info["completed_count"],
+                        expected_count=progress_info["expected_count"],
                     )
                 )
                 goal_has_tasks = True
@@ -352,15 +360,15 @@ def get_calendar_timeline(
         for ms in goal.milestones:
             if ms.is_archived:
                 continue
-            ms_progress = calculate_milestone_progress(ms)
+            ms_info = calculate_milestone_progress(ms)
             milestone_views.append(
                 schemas.TimelineMilestone(
                     id=ms.id,
                     title=ms.title,
-                    completed=ms.is_closed or ms_progress >= ms.completion_percent,
+                    completed=ms.is_closed or ms_info["all_actions_reached_target"],
                     start_date=ms.start_date,
                     end_date=ms.end_date,
-                    progress_percent=round(ms_progress, 1),
+                    progress_percent=ms_info["progress"],
                     goal_id=goal.id,
                 )
             )

@@ -10,7 +10,13 @@ export interface RecurringAction {
   title: string;
   weekdays: number[]; // [1,3,5] = пн, ср, пт (1-7)
   created_at?: string;
-  completion_percent: number; // Вычисляемый процент выполнения
+  target_percent: number; // Целевой процент (1-100)
+  is_completed: boolean; // Достигнут ли target_percent
+  current_percent: number; // Вычисляемый текущий процент
+  is_target_reached: boolean; // current_percent >= target_percent
+  expected_count: number; // Сколько раз должно быть выполнено
+  completed_count: number; // Сколько раз выполнено
+  completion_percent: number; // Legacy: алиас для current_percent
 }
 
 // Однократное действие (с дедлайном)
@@ -65,6 +71,7 @@ export interface GoalV2 {
 export interface RecurringActionCreate {
   title: string;
   weekdays: number[];
+  target_percent?: number; // 1-100, default 80
 }
 
 // Данные для создания однократного действия

@@ -58,8 +58,28 @@ User
 
 ## Расчёт прогресса
 
+### Регулярные действия (RecurringAction)
+Каждое регулярное действие имеет свой `target_percent` (1-100, default 80%).
+
 ```
-progress = (completed_steps / total_steps) * 100
+current_percent = (completed_count / expected_count) * 100
+is_target_reached = current_percent >= target_percent
 ```
 
-Вычисляется динамически при каждом запросе.
+- `expected_count` — кол-во дней, когда действие должно было быть выполнено (от start_date до min(end_date, today))
+- `completed_count` — кол-во логов с `completed=True`
+
+### Вехи (Milestone)
+Веха закрыта когда **все** её действия достигли своего `target_percent`:
+```
+all_actions_reached_target = all(action.is_target_reached for action in milestone.actions)
+progress = avg(action.current_percent for action in milestone.actions)
+```
+
+### Цели (Goal)
+```
+progress = avg(milestone.progress for milestone in goal.milestones)
+```
+
+Все значения вычисляются динамически при каждом запросе.
+`is_completed` у RecurringAction пересчитывается автоматически при логировании выполнения.

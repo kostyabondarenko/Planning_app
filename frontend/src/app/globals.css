@@ -836,6 +836,94 @@
     color: var(--accent-success);
   }
 
+  /* Day Details — Task Progress */
+  .details-task-item {
+    flex-direction: column;
+    text-decoration: none !important;
+  }
+
+  .details-task-item.done {
+    text-decoration: none !important;
+  }
+
+  .details-task-item.done .details-task-title {
+    text-decoration: line-through;
+  }
+
+  .details-task-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .details-task-title {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .details-task-progress {
+    width: 100%;
+    padding-left: 16px;
+    margin-top: 4px;
+  }
+
+  .details-task-progress-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 3px;
+  }
+
+  .details-task-progress-numbers {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  .details-task-progress-numbers--done {
+    color: var(--accent-success);
+  }
+
+  .details-task-progress-counts {
+    font-size: 10px;
+    color: var(--text-tertiary);
+  }
+
+  .details-task-progress-track {
+    position: relative;
+    width: 100%;
+    height: 3px;
+    background: var(--border-light);
+    border-radius: 2px;
+    overflow: visible;
+  }
+
+  .details-task-progress-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    border-radius: 2px;
+    background: var(--gradient-warm);
+    transition: width 0.6s ease-out;
+  }
+
+  .details-task-progress-fill--done {
+    background: var(--accent-success);
+  }
+
+  .details-task-progress-marker {
+    position: absolute;
+    top: -2px;
+    width: 2px;
+    height: 7px;
+    background: var(--text-secondary);
+    border-radius: 1px;
+    transform: translateX(-1px);
+    opacity: 0.6;
+  }
+
   .go-to-day-btn {
     display: inline-flex;
     align-items: center;
@@ -1665,6 +1753,7 @@
 
   /* Task Card */
   .task-card {
+    position: relative;
     background: var(--glass-bg);
     backdrop-filter: var(--blur-md);
     -webkit-backdrop-filter: var(--blur-md);
@@ -1750,6 +1839,101 @@
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 160px;
+  }
+
+  /* Task Progress Badge */
+  .task-progress-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 6px;
+    border-radius: var(--radius-full);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-light);
+    white-space: nowrap;
+  }
+
+  .task-progress-badge--done {
+    color: var(--accent-success);
+    background: rgba(140, 179, 105, 0.1);
+    border-color: rgba(140, 179, 105, 0.3);
+  }
+
+  [data-theme="dark"] .task-progress-badge--done {
+    background: rgba(52, 211, 153, 0.1);
+    border-color: rgba(52, 211, 153, 0.3);
+  }
+
+  /* Task Card Mini Progress Bar */
+  .task-card-progress-track {
+    position: relative;
+    width: 100%;
+    height: 3px;
+    background: var(--border-light);
+    border-radius: 2px;
+    margin-top: 8px;
+    overflow: visible;
+  }
+
+  .task-card-progress-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    border-radius: 2px;
+    background: var(--gradient-warm);
+    transition: width 0.6s ease-out;
+  }
+
+  .task-card-progress-fill--done {
+    background: var(--accent-success);
+  }
+
+  .task-card-progress-marker {
+    position: absolute;
+    top: -2px;
+    width: 2px;
+    height: 7px;
+    background: var(--text-secondary);
+    border-radius: 1px;
+    transform: translateX(-1px);
+    opacity: 0.6;
+  }
+
+  /* Task Card Tooltip */
+  .task-card-tooltip {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg-primary);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-md);
+    padding: 8px 12px;
+    box-shadow: var(--shadow-lg);
+    z-index: 50;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  .task-card-tooltip-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+  }
+
+  .task-card-tooltip-row {
+    font-size: 11px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+  }
+
+  .task-card-tooltip-success {
+    color: var(--accent-success);
+    font-weight: 500;
   }
 
   /* Add Task Button */
@@ -1945,6 +2129,123 @@
     cursor: pointer;
     box-shadow: var(--shadow-sm);
     border: 2px solid var(--bg-tertiary);
+  }
+
+  /* =============================================
+     PercentSelector Styles
+     ============================================= */
+
+  .percent-selector {
+    padding: 12px 16px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+  }
+
+  .percent-selector-value {
+    font-size: 18px;
+    font-weight: 700;
+    background: var(--gradient-warm);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .percent-selector-reached {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent-success);
+    background: color-mix(in srgb, var(--accent-success) 12%, transparent);
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+  }
+
+  .percent-selector-track-wrapper {
+    position: relative;
+    padding: 4px 0;
+  }
+
+  .percent-selector-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 9999px;
+    outline: none;
+    background: linear-gradient(
+      to right,
+      var(--accent-primary) 0%,
+      var(--accent-primary) var(--fill-percent, 70%),
+      var(--border-light, var(--glass-border)) var(--fill-percent, 70%),
+      var(--border-light, var(--glass-border)) 100%
+    );
+    transition: background var(--transition-fast);
+  }
+
+  .percent-selector-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--bg-tertiary);
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15), 0 0 0 2px var(--accent-primary);
+    border: none;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  }
+
+  .percent-selector-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), 0 0 0 3px var(--accent-primary);
+  }
+
+  .percent-selector-slider::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--bg-tertiary);
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15), 0 0 0 2px var(--accent-primary);
+    border: none;
+  }
+
+  .percent-selector-slider::-moz-range-track {
+    height: 6px;
+    border-radius: 9999px;
+    background: var(--border-light, var(--glass-border));
+  }
+
+  .percent-preset-btn {
+    padding: 4px 12px;
+    border-radius: var(--radius-full);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    border: none;
+  }
+
+  .percent-preset-btn-inactive {
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border: 1px solid var(--glass-border);
+  }
+
+  .percent-preset-btn-inactive:hover {
+    border-color: var(--accent-primary);
+    color: var(--text-primary);
+  }
+
+  .percent-preset-btn-active {
+    background: var(--gradient-warm);
+    color: var(--text-inverse);
+    border: 1px solid transparent;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .percent-preset-btn-active:hover {
+    box-shadow: var(--shadow-md);
   }
 
   /* Milestone card in forms */
@@ -2152,5 +2453,176 @@
     border-color: var(--glass-border-hover);
     transform: translateY(-4px);
     box-shadow: var(--shadow-lift);
+  }
+
+  /* =============================================
+     ActionProgressBar — прогресс действия
+     ============================================= */
+
+  .action-progress {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 120px;
+  }
+
+  .action-progress--compact {
+    min-width: 80px;
+    gap: 2px;
+  }
+
+  .action-progress-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    justify-content: flex-end;
+  }
+
+  .action-progress-numbers {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .action-progress-numbers--done {
+    color: var(--accent-success);
+  }
+
+  .action-progress-separator {
+    color: var(--text-tertiary);
+    margin: 0 1px;
+    font-weight: 400;
+  }
+
+  .action-progress-check {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent-success);
+    color: var(--text-inverse);
+    flex-shrink: 0;
+  }
+
+  .action-progress-track {
+    position: relative;
+    height: 8px;
+    background: var(--border-light);
+    border-radius: 9999px;
+    overflow: visible;
+  }
+
+  .action-progress--compact .action-progress-track {
+    height: 6px;
+  }
+
+  .action-progress-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    border-radius: 9999px;
+    background: var(--gradient-warm);
+    transition: background var(--transition-base);
+  }
+
+  .action-progress-fill--done {
+    background: var(--accent-success);
+    animation: progress-pulse 0.6s ease-out;
+  }
+
+  @keyframes progress-pulse {
+    0% { box-shadow: none; }
+    50% { box-shadow: 0 0 12px rgba(140, 179, 105, 0.5); }
+    100% { box-shadow: none; }
+  }
+
+  [data-theme="dark"] .action-progress-fill--done {
+    animation-name: progress-pulse-dark;
+  }
+
+  @keyframes progress-pulse-dark {
+    0% { box-shadow: none; }
+    50% { box-shadow: 0 0 12px rgba(52, 211, 153, 0.5); }
+    100% { box-shadow: none; }
+  }
+
+  .action-progress-marker {
+    position: absolute;
+    top: -2px;
+    width: 2px;
+    height: calc(100% + 4px);
+    background: var(--text-tertiary);
+    border-radius: 1px;
+    transform: translateX(-1px);
+    z-index: 1;
+    opacity: 0.7;
+    transition: opacity var(--transition-fast);
+  }
+
+  .action-progress:hover .action-progress-marker {
+    opacity: 1;
+  }
+
+  /* =============================================
+     Milestone Actions Summary
+     ============================================= */
+
+  .milestone-summary {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+  }
+
+  .milestone-summary-text {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+
+  .milestone-summary-dots {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .milestone-summary-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    transition: all var(--transition-fast);
+    flex-shrink: 0;
+  }
+
+  .milestone-summary-dot--done {
+    background: var(--accent-success);
+    box-shadow: 0 0 4px rgba(140, 179, 105, 0.3);
+  }
+
+  [data-theme="dark"] .milestone-summary-dot--done {
+    box-shadow: 0 0 4px rgba(52, 211, 153, 0.3);
+  }
+
+  .milestone-summary-dot--pending {
+    background: var(--border-medium);
+  }
+
+  /* Действие с достигнутой целью — приглушённый стиль */
+  .action-card--completed {
+    opacity: 0.7;
+    border-color: color-mix(in srgb, var(--accent-success) 25%, transparent) !important;
+  }
+
+  /* Действие просроченное и не достигшее цели */
+  .action-card--overdue {
+    border-color: color-mix(in srgb, var(--accent-error) 30%, transparent) !important;
+    background: color-mix(in srgb, var(--accent-error) 4%, var(--bg-secondary)) !important;
   }
 }

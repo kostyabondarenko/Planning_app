@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, ConfigDict, field_validator
+from pydantic import BaseModel, EmailStr, ConfigDict, Field, field_validator
 from typing import Optional, List, Literal
 from datetime import datetime, date
 
@@ -116,7 +116,7 @@ class RecurringActionBase(BaseModel):
 
 
 class RecurringActionCreate(RecurringActionBase):
-    pass
+    target_percent: Optional[int] = Field(default=None, ge=1, le=100)  # None = использовать milestone.default_action_percent
 
 
 class RecurringActionUpdate(BaseModel):
@@ -124,6 +124,7 @@ class RecurringActionUpdate(BaseModel):
 
     title: Optional[str] = None
     weekdays: Optional[List[int]] = None
+    target_percent: Optional[int] = Field(default=None, ge=1, le=100)
 
     @field_validator("weekdays")
     @classmethod
@@ -141,8 +142,13 @@ class RecurringActionUpdate(BaseModel):
 class RecurringActionResponse(RecurringActionBase):
     id: int
     milestone_id: int
+    target_percent: int = 80
+    is_completed: bool = False
+    current_percent: float = 0.0  # Вычисляемый процент выполнения
+    is_target_reached: bool = False  # current_percent >= target_percent
+    expected_count: int = 0  # Сколько раз должно быть выполнено
+    completed_count: int = 0  # Сколько раз выполнено
     created_at: Optional[datetime] = None
-    completion_percent: float = 0.0  # Вычисляемый процент выполнения
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -193,14 +199,7 @@ class MilestoneBase(BaseModel):
     start_date: date
     end_date: date
     completion_condition: Optional[str] = None  # например "80%"
-    completion_percent: int = 80  # требуемый процент (0-100)
-
-    @field_validator("completion_percent")
-    @classmethod
-    def validate_completion_percent(cls, v: int) -> int:
-        if v < 0 or v > 100:
-            raise ValueError("completion_percent must be between 0 and 100")
-        return v
+    default_action_percent: int = Field(default=80, ge=1, le=100)  # Default target для новых действий
 
     @field_validator("end_date")
     @classmethod
@@ -220,7 +219,7 @@ class MilestoneUpdate(BaseModel):
     start_date: Optional[date] = None
     end_date: Optional[date] = None
     completion_condition: Optional[str] = None
-    completion_percent: Optional[int] = None
+    default_action_percent: Optional[int] = Field(default=None, ge=1, le=100)
 
 
 # --- Закрытие вехи ---
@@ -235,14 +234,12 @@ class MilestoneCloseAction(BaseModel):
 
     action: str  # "close_as_is", "extend", "reduce_percent"
     new_end_date: Optional[date] = None  # Для action="extend"
-    new_completion_percent: Optional[int] = None  # Для action="reduce_percent"
+    new_default_action_percent: Optional[int] = Field(default=None, ge=1, le=100)  # Для action="reduce_percent"
 
-    @field_validator("new_completion_percent")
-    @classmethod
-    def validate_new_percent(cls, v: Optional[int]) -> Optional[int]:
-        if v is not None and (v < 0 or v > 100):
-            raise ValueError("new_completion_percent must be between 0 and 100")
-        return v
+
+class BulkTargetPercentUpdate(BaseModel):
+    """Обновить target_percent для всех действий вехи."""
+    target_percent: int = Field(ge=1, le=100)
 
 
 class MilestoneResponse(MilestoneBase):
@@ -252,6 +249,9 @@ class MilestoneResponse(MilestoneBase):
     recurring_actions: List[RecurringActionResponse] = []
     one_time_actions: List[OneTimeActionResponse] = []
     progress: float = 0.0  # Вычисляемый общий прогресс вехи
+    actions_completed_count: int = 0  # Кол-во действий, достигших цели
+    actions_total_count: int = 0  # Общее кол-во активных действий
+    all_actions_reached_target: bool = False  # Все действия достигли target_percent
     is_closed: bool = False  # Веха официально закрыта
     is_archived: bool = False  # Веха в архиве?
     archived_at: Optional[datetime] = None
@@ -338,6 +338,11 @@ class TaskView(BaseModel):
     completed: bool
     original_id: int  # ID исходного RecurringAction или OneTimeAction
     log_id: Optional[int] = None  # ID RecurringActionLog (только для регулярных)
+    target_percent: Optional[int] = None  # Целевой % (только для recurring)
+    current_percent: Optional[float] = None  # Текущий % выполнения (только для recurring)
+    is_target_reached: Optional[bool] = None  # Достигнут ли target (только для recurring)
+    completed_count: Optional[int] = None  # Выполнено раз (только для recurring)
+    expected_count: Optional[int] = None  # Ожидалось раз (только для recurring)
 
 
 class TaskRangeResponse(BaseModel):
@@ -379,6 +384,7 @@ class TaskCreate(BaseModel):
     milestone_id: int
     deadline: Optional[date] = None  # Для однократных
     weekdays: Optional[List[int]] = None  # Для регулярных [1-7]
+    target_percent: Optional[int] = Field(default=None, ge=1, le=100)  # Для регулярных, None = default из вехи
 
     @field_validator("weekdays")
     @classmethod
@@ -443,6 +449,11 @@ class CalendarTaskView(BaseModel):
     goal_title: str
     goal_color: str
     completed: bool
+    target_percent: Optional[int] = None  # Целевой % (только для recurring)
+    current_percent: Optional[float] = None  # Текущий % выполнения (только для recurring)
+    is_target_reached: Optional[bool] = None  # Достигнут ли target (только для recurring)
+    completed_count: Optional[int] = None  # Выполнено раз (только для recurring)
+    expected_count: Optional[int] = None  # Ожидалось раз (только для recurring)
 
 
 class CalendarMilestoneView(BaseModel):

@@ -98,9 +98,9 @@ class Milestone(Base):
     completion_condition: Mapped[Optional[str]] = mapped_column(
         nullable=True
     )  # например "80%"
-    completion_percent: Mapped[int] = mapped_column(
+    default_action_percent: Mapped[int] = mapped_column(
         default=80
-    )  # требуемый процент (0-100)
+    )  # Default target_percent для новых действий вехи (1-100)
     is_closed: Mapped[bool] = mapped_column(default=False)  # Веха официально закрыта
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
 
@@ -129,6 +129,8 @@ class RecurringAction(Base):
     weekdays: Mapped[List[int]] = mapped_column(
         JSON, nullable=False
     )  # [1,3,5] = пн, ср, пт
+    target_percent: Mapped[int] = mapped_column(default=80)  # Целевой % выполнения (1-100)
+    is_completed: Mapped[bool] = mapped_column(default=False)  # Достигнут ли target_percent
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
 
     # Soft delete

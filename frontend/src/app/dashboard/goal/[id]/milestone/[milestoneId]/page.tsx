@@ -20,6 +20,8 @@ import { useMilestone } from '@/lib/useMilestone';
 import { formatDateFull, formatDateShort, roundProgress, getMilestoneDurationDays } from '@/lib/formatDate';
 import { formatWeekdays, MilestoneCloseAction } from '@/types/goals';
 import WeekdaySelector from '@/components/WeekdaySelector';
+import PercentSelector from '@/components/PercentSelector';
+import ActionProgressBar from '@/components/ActionProgressBar';
 
 export default function MilestoneDetailPage() {
   const params = useParams();
@@ -54,6 +56,7 @@ export default function MilestoneDetailPage() {
   const [showAddOneTime, setShowAddOneTime] = useState(false);
   const [newRecurringTitle, setNewRecurringTitle] = useState('');
   const [newRecurringWeekdays, setNewRecurringWeekdays] = useState<number[]>([]);
+  const [newRecurringTargetPercent, setNewRecurringTargetPercent] = useState(80);
   const [newOneTimeTitle, setNewOneTimeTitle] = useState('');
   const [newOneTimeDeadline, setNewOneTimeDeadline] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -70,6 +73,7 @@ export default function MilestoneDetailPage() {
   const [editingRecurringId, setEditingRecurringId] = useState<number | null>(null);
   const [editRecurringTitle, setEditRecurringTitle] = useState('');
   const [editRecurringWeekdays, setEditRecurringWeekdays] = useState<number[]>([]);
+  const [editRecurringTargetPercent, setEditRecurringTargetPercent] = useState(80);
 
   const [editingOneTimeId, setEditingOneTimeId] = useState<number | null>(null);
   const [editOneTimeTitle, setEditOneTimeTitle] = useState('');
@@ -138,9 +142,11 @@ export default function MilestoneDetailPage() {
       await createRecurringAction({
         title: newRecurringTitle.trim(),
         weekdays: newRecurringWeekdays,
+        target_percent: newRecurringTargetPercent,
       });
       setNewRecurringTitle('');
       setNewRecurringWeekdays([]);
+      setNewRecurringTargetPercent(80);
       setShowAddRecurring(false);
       showToast('success', 'Действие добавлено');
     } finally {
@@ -189,10 +195,11 @@ export default function MilestoneDetailPage() {
   };
 
   // Начать inline-редактирование регулярного действия
-  const startEditRecurring = (actionId: number, title: string, weekdays: number[]) => {
+  const startEditRecurring = (actionId: number, title: string, weekdays: number[], targetPercent: number) => {
     setEditingRecurringId(actionId);
     setEditRecurringTitle(title);
     setEditRecurringWeekdays([...weekdays]);
+    setEditRecurringTargetPercent(targetPercent);
   };
 
   // Сохранить inline-редактирование регулярного действия
@@ -202,6 +209,7 @@ export default function MilestoneDetailPage() {
       await updateRecurringAction(editingRecurringId, {
         title: editRecurringTitle.trim(),
         weekdays: editRecurringWeekdays,
+        target_percent: editRecurringTargetPercent,
       });
       showToast('success', 'Действие обновлено');
     } catch {
@@ -273,6 +281,10 @@ export default function MilestoneDetailPage() {
 
   const completedOneTimeCount = milestone.one_time_actions.filter(a => a.completed).length;
   const totalActions = milestone.recurring_actions.length + milestone.one_time_actions.length;
+
+  // Сводка: сколько регулярных действий достигли цели
+  const recurringReachedCount = milestone.recurring_actions.filter(a => a.is_target_reached).length;
+  const recurringTotalCount = milestone.recurring_actions.length;
 
   // Сортировка однократных действий: незавершённые по deadline ASC, затем завершённые
   const sortedOneTimeActions = [...milestone.one_time_actions].sort((a, b) => {
@@ -598,6 +610,30 @@ export default function MilestoneDetailPage() {
                 </Button>
               </div>
 
+              {/* Сводка по регулярным действиям */}
+              {recurringTotalCount > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="milestone-summary mb-4"
+                >
+                  <div className="milestone-summary-dots">
+                    {milestone.recurring_actions.map((action) => (
+                      <div
+                        key={action.id}
+                        className={`milestone-summary-dot ${
+                          action.is_target_reached ? 'milestone-summary-dot--done' : 'milestone-summary-dot--pending'
+                        }`}
+                        title={`${action.title}: ${Math.round(action.current_percent)}% / ${action.target_percent}%`}
+                      />
+                    ))}
+                  </div>
+                  <span className="milestone-summary-text">
+                    {recurringReachedCount} из {recurringTotalCount} действий достигли цели
+                  </span>
+                </motion.div>
+              )}
+
               {/* Add recurring action form */}
               <AnimatePresence>
                 {showAddRecurring && (
@@ -618,6 +654,11 @@ export default function MilestoneDetailPage() {
                         onChange={setNewRecurringWeekdays}
                         label="Дни недели"
                         allowEmpty
+                      />
+                      <PercentSelector
+                        value={newRecurringTargetPercent}
+                        onChange={setNewRecurringTargetPercent}
+                        label="Целевой процент"
                       />
                       <div className="flex gap-2 justify-end">
                         <Button variant="secondary" onClick={() => setShowAddRecurring(false)}>
@@ -644,7 +685,13 @@ export default function MilestoneDetailPage() {
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: index * 0.05 }}
-                      className="p-4 bg-app-surfaceMuted rounded-2xl border border-app-border"
+                      className={`p-4 bg-app-surfaceMuted rounded-2xl border border-app-border ${
+                        action.is_target_reached
+                          ? 'action-card--completed'
+                          : isExpired && !milestone.is_closed
+                            ? 'action-card--overdue'
+                            : ''
+                      }`}
                     >
                       {editingRecurringId === action.id ? (
                         /* Inline edit mode */
@@ -658,6 +705,12 @@ export default function MilestoneDetailPage() {
                             value={editRecurringWeekdays}
                             onChange={setEditRecurringWeekdays}
                             label="Дни недели"
+                          />
+                          <PercentSelector
+                            value={editRecurringTargetPercent}
+                            onChange={setEditRecurringTargetPercent}
+                            label="Целевой процент"
+                            currentProgress={action.current_percent}
                           />
                           <div className="flex gap-2 justify-end">
                             <Button
@@ -680,51 +733,46 @@ export default function MilestoneDetailPage() {
                         </div>
                       ) : (
                         /* View mode */
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 bg-ios-purple/20 rounded-xl flex items-center justify-center">
-                              <Repeat size={18} className="text-ios-purple" />
+                        <div>
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-4 min-w-0">
+                              <div className="w-10 h-10 bg-ios-purple/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                                <Repeat size={18} className="text-ios-purple" />
+                              </div>
+                              <div className="min-w-0">
+                                <p className={`font-semibold ${action.is_target_reached ? 'text-app-textMuted' : 'text-app-text'}`}>
+                                  {action.title}
+                                </p>
+                                <p className="text-sm text-app-textMuted">{formatWeekdays(action.weekdays)}</p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="font-semibold text-app-text">{action.title}</p>
-                              <p className="text-sm text-app-textMuted">{formatWeekdays(action.weekdays)}</p>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              <button
+                                onClick={() => startEditRecurring(action.id, action.title, action.weekdays, action.target_percent ?? 80)}
+                                className="w-8 h-8 rounded-full hover:bg-app-accentSoft flex items-center justify-center transition-colors"
+                                title="Редактировать"
+                              >
+                                <Edit size={16} className="text-app-accent" />
+                              </button>
+                              <button
+                                onClick={() => setDeleteActionConfirm({ type: 'recurring', id: action.id, title: action.title })}
+                                disabled={deletingActionId === action.id}
+                                className="w-8 h-8 rounded-full hover:bg-app-danger/10 flex items-center justify-center transition-colors"
+                              >
+                                {deletingActionId === action.id ? (
+                                  <Loader2 size={16} className="text-app-danger animate-spin" />
+                                ) : (
+                                  <Trash2 size={16} className="text-app-danger" />
+                                )}
+                              </button>
                             </div>
                           </div>
-                          <div className="flex items-center gap-4">
-                            <div className="text-right">
-                              {action.completion_percent >= 100 ? (
-                                <p className="text-lg font-bold text-app-success flex items-center gap-1">
-                                  <Check size={16} />
-                                  100%
-                                </p>
-                              ) : (
-                                <p className={`text-lg font-bold ${
-                                  action.completion_percent >= 80 ? 'text-app-success' :
-                                  action.completion_percent >= 50 ? 'text-app-warning' : 'text-app-text'
-                                }`}>
-                                  {roundProgress(action.completion_percent, durationDays)}%
-                                </p>
-                              )}
-                            </div>
-                            <button
-                              onClick={() => startEditRecurring(action.id, action.title, action.weekdays)}
-                              className="w-8 h-8 rounded-full hover:bg-app-accentSoft flex items-center justify-center transition-colors"
-                              title="Редактировать"
-                            >
-                              <Edit size={16} className="text-app-accent" />
-                            </button>
-                            <button
-                              onClick={() => setDeleteActionConfirm({ type: 'recurring', id: action.id, title: action.title })}
-                              disabled={deletingActionId === action.id}
-                              className="w-8 h-8 rounded-full hover:bg-app-danger/10 flex items-center justify-center transition-colors"
-                            >
-                              {deletingActionId === action.id ? (
-                                <Loader2 size={16} className="text-app-danger animate-spin" />
-                              ) : (
-                                <Trash2 size={16} className="text-app-danger" />
-                              )}
-                            </button>
-                          </div>
+                          {/* Progress bar с маркером цели */}
+                          <ActionProgressBar
+                            currentPercent={action.current_percent}
+                            targetPercent={action.target_percent ?? 80}
+                            isCompleted={action.is_target_reached}
+                          />
                         </div>
                       )}
                     </motion.div>

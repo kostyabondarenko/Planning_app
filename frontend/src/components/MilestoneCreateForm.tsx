@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react';
 import {
   X, Plus, Trash2, Calendar, Flag,
   ChevronDown, ChevronUp, Repeat, CircleDot,
-  AlertCircle
+  AlertCircle, Info, Check, Sliders
 } from 'lucide-react';
 import {
   MilestoneCreate,
@@ -15,6 +15,7 @@ import {
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import WeekdaySelector from '@/components/WeekdaySelector';
+import PercentSelector from '@/components/PercentSelector';
 
 interface MilestoneCreateFormProps {
   isOpen: boolean;
@@ -38,10 +39,12 @@ interface OneTimeActionForm extends OneTimeActionCreate {
 }
 
 /**
- * Полноэкранная форма создания вехи (Этап 5)
+ * Полноэкранная форма создания вехи
  * - Название и период вехи
- * - Условие закрытия (% действий)
- * - Добавление регулярных действий с днями недели
+ * - Информация: веха закрыта когда все действия достигли целей
+ * - Добавление регулярных действий с днями недели и целевым %
+ * - «Применить ко всем» для массового изменения target_percent
+ * - Превью условия закрытия
  * - Добавление однократных действий с дедлайном
  */
 export default function MilestoneCreateForm({
@@ -57,7 +60,6 @@ export default function MilestoneCreateForm({
   const [title, setTitle] = useState('');
   const [startDate, setStartDate] = useState(goalStartDate || '');
   const [endDate, setEndDate] = useState('');
-  const [completionPercent, setCompletionPercent] = useState(80);
 
   // Действия
   const [recurringActions, setRecurringActions] = useState<RecurringActionForm[]>([]);
@@ -67,17 +69,20 @@ export default function MilestoneCreateForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [activeSection, setActiveSection] = useState<'recurring' | 'onetime' | null>(null);
+  const [showApplyAll, setShowApplyAll] = useState(false);
+  const [applyAllValue, setApplyAllValue] = useState(80);
 
   // Сброс формы
   const resetForm = useCallback(() => {
     setTitle('');
     setStartDate(goalStartDate || '');
     setEndDate('');
-    setCompletionPercent(80);
     setRecurringActions([]);
     setOneTimeActions([]);
     setErrors({});
     setActiveSection(null);
+    setShowApplyAll(false);
+    setApplyAllValue(80);
   }, [goalStartDate]);
 
   // Закрытие формы
@@ -92,6 +97,7 @@ export default function MilestoneCreateForm({
       tempId: crypto.randomUUID(),
       title: '',
       weekdays: [1, 2, 3, 4, 5], // По умолчанию будни
+      target_percent: 80,
     };
     setRecurringActions(prev => [...prev, newAction]);
     setActiveSection('recurring');
@@ -126,6 +132,14 @@ export default function MilestoneCreateForm({
 
   const removeOneTimeAction = useCallback((tempId: string) => {
     setOneTimeActions(prev => prev.filter(a => a.tempId !== tempId));
+  }, []);
+
+  // === Применить target_percent ко всем действиям ===
+  const applyPercentToAll = useCallback((percent: number) => {
+    setRecurringActions(prev =>
+      prev.map(a => ({ ...a, target_percent: percent }))
+    );
+    setShowApplyAll(false);
   }, []);
 
   // === Валидация ===
@@ -202,11 +216,10 @@ export default function MilestoneCreateForm({
         title: title.trim(),
         start_date: startDate,
         end_date: endDate,
-        completion_percent: completionPercent,
-        completion_condition: `${completionPercent}%`,
         recurring_actions: recurringActions.map(a => ({
           title: a.title.trim(),
           weekdays: a.weekdays,
+          target_percent: a.target_percent,
         })),
         one_time_actions: oneTimeActions.map(a => ({
           title: a.title.trim(),
@@ -224,7 +237,7 @@ export default function MilestoneCreateForm({
       setIsSubmitting(false);
     }
   }, [
-    title, startDate, endDate, completionPercent,
+    title, startDate, endDate,
     recurringActions, oneTimeActions,
     validateForm, onSubmit, handleClose
   ]);
@@ -321,24 +334,20 @@ export default function MilestoneCreateForm({
                 </div>
               </div>
 
-              {/* Условие закрытия */}
-              <div>
-                <label className="block text-sm font-semibold text-app-text mb-2">
-                  Условие закрытия: {completionPercent}% действий выполнено
-                </label>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  step="5"
-                  value={completionPercent}
-                  onChange={(e) => setCompletionPercent(parseInt(e.target.value))}
-                  className="range-brandbook"
-                />
-                <div className="flex justify-between text-xs text-app-textMuted mt-1">
-                  <span>0%</span>
-                  <span>50%</span>
-                  <span>100%</span>
+              {/* Условие закрытия — информационный блок */}
+              <div
+                className="p-4 rounded-2xl flex items-start gap-3"
+                style={{ background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)' }}
+              >
+                <Info size={18} className="flex-shrink-0 mt-0.5" style={{ color: 'var(--accent-primary)' }} />
+                <div>
+                  <p className="text-sm font-medium text-app-text">
+                    Условие закрытия вехи
+                  </p>
+                  <p className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>
+                    Веха закрывается, когда все регулярные действия достигнут своих целевых процентов.
+                    Укажите целевой процент для каждого действия ниже.
+                  </p>
                 </div>
               </div>
 
@@ -372,6 +381,9 @@ export default function MilestoneCreateForm({
                     <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>
                       Повторяющиеся действия по дням недели
                     </p>
+                    <p className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>
+                      Для каждого действия можно задать свой целевой процент выполнения
+                    </p>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -381,10 +393,61 @@ export default function MilestoneCreateForm({
                         action={action}
                         index={index}
                         errors={errors}
+                        isFirst={index === 0}
                         onUpdate={(updates) => updateRecurringAction(action.tempId, updates)}
                         onRemove={() => removeRecurringAction(action.tempId)}
                       />
                     ))}
+
+                    {/* Применить ко всем */}
+                    {recurringActions.length >= 2 && (
+                      <div>
+                        {!showApplyAll ? (
+                          <button
+                            type="button"
+                            onClick={() => setShowApplyAll(true)}
+                            className="flex items-center gap-1.5 text-xs font-medium transition-colors"
+                            style={{ color: 'var(--accent-primary)' }}
+                            onMouseEnter={(e) => e.currentTarget.style.opacity = '0.7'}
+                            onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                          >
+                            <Sliders size={14} />
+                            Применить процент ко всем действиям
+                          </button>
+                        ) : (
+                          <div
+                            className="p-4 rounded-2xl space-y-3"
+                            style={{ background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)' }}
+                          >
+                            <p className="text-xs font-semibold text-app-text uppercase tracking-wide">
+                              Применить ко всем действиям
+                            </p>
+                            <PercentSelector
+                              value={applyAllValue}
+                              onChange={setApplyAllValue}
+                            />
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => setShowApplyAll(false)}
+                              >
+                                Отмена
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                onClick={() => applyPercentToAll(applyAllValue)}
+                              >
+                                <Check size={14} />
+                                Применить
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -434,6 +497,34 @@ export default function MilestoneCreateForm({
                 )}
               </div>
 
+              {/* Превью условия закрытия */}
+              {recurringActions.length > 0 && recurringActions.some(a => a.title.trim()) && (
+                <div
+                  className="p-4 rounded-2xl"
+                  style={{ background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)' }}
+                >
+                  <p className="text-xs font-semibold text-app-textMuted uppercase tracking-wide mb-3">
+                    Веха будет закрыта, когда:
+                  </p>
+                  <div className="space-y-2">
+                    {recurringActions.filter(a => a.title.trim()).map((action) => (
+                      <div key={action.tempId} className="flex items-center gap-2">
+                        <span
+                          className="w-2 h-2 rounded-full flex-shrink-0"
+                          style={{ background: 'var(--accent-success)' }}
+                        />
+                        <span className="text-sm text-app-text">
+                          {action.title.trim()}
+                        </span>
+                        <span className="text-xs font-medium" style={{ color: 'var(--text-tertiary)' }}>
+                          — {action.target_percent ?? 80}% выполнений
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Ошибка отправки */}
               {errors.submit && (
                 <div className="p-4 rounded-2xl flex items-start gap-3" style={{ background: 'rgba(217, 117, 108, 0.1)' }}>
@@ -476,11 +567,12 @@ interface RecurringActionCardProps {
   action: RecurringActionForm;
   index: number;
   errors: Record<string, string>;
+  isFirst?: boolean;
   onUpdate: (updates: Partial<RecurringActionForm>) => void;
   onRemove: () => void;
 }
 
-function RecurringActionCard({ action, index, errors, onUpdate, onRemove }: RecurringActionCardProps) {
+function RecurringActionCard({ action, index, errors, isFirst, onUpdate, onRemove }: RecurringActionCardProps) {
   return (
     <div className="form-card-section p-4">
       <div className="flex items-start gap-3">
@@ -512,6 +604,20 @@ function RecurringActionCard({ action, index, errors, onUpdate, onRemove }: Recu
             allowEmpty
             error={errors[`recurring_${action.tempId}_weekdays`]}
           />
+
+          {/* Целевой процент */}
+          <div>
+            <PercentSelector
+              value={action.target_percent ?? 80}
+              onChange={(target_percent) => onUpdate({ target_percent })}
+              label="Целевой процент"
+            />
+            {isFirst && (
+              <p className="text-xs mt-1.5" style={{ color: 'var(--text-tertiary)' }}>
+                Например, 80% означает: из 10 запланированных выполнений достаточно 8
+              </p>
+            )}
+          </div>
         </div>
 
         <button

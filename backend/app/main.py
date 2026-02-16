@@ -1,12 +1,18 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
 from .routers import auth, goals, todos, goals_v2, tasks, calendar
 
-# Create tables
-Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Goal Navigator API")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Create tables on startup
+    Base.metadata.create_all(bind=engine)
+    yield
+
+
+app = FastAPI(title="Goal Navigator API", lifespan=lifespan)
 
 # CORS middleware
 app.add_middleware(

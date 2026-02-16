@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from datetime import date, datetime, timedelta
 from typing import List
 from .. import models, schemas, auth, database
-from .goals_v2 import calculate_milestone_progress
+from .goals_v2 import calculate_milestone_progress, recalculate_action_completion, calculate_recurring_action_progress
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 
@@ -54,6 +54,10 @@ def _build_recurring_tasks(
         for action in milestone.recurring_actions:
             if action.is_deleted:
                 continue
+            # Рассчитываем прогресс действия один раз
+            progress_info = calculate_recurring_action_progress(
+                action, milestone.start_date, milestone.end_date
+            )
             # Создаём лог-маппинг: date -> log
             log_by_date = {log.date: log for log in action.logs}
 
@@ -76,6 +80,11 @@ def _build_recurring_tasks(
                             completed=log.completed if log else False,
                             original_id=action.id,
                             log_id=log.id if log else None,
+                            target_percent=action.target_percent,
+                            current_percent=progress_info["current_percent"],
+                            is_target_reached=progress_info["is_target_reached"],
+                            completed_count=progress_info["completed_count"],
+                            expected_count=progress_info["expected_count"],
                         )
                     )
                 current += timedelta(days=1)
@@ -210,6 +219,8 @@ def complete_task(
                 db.add(log)
 
         db.flush()
+        # Автопересчёт is_completed действия
+        recalculate_action_completion(action)
         milestone = action.milestone
 
     elif data.type == "one-time":
@@ -237,9 +248,9 @@ def complete_task(
 
     # Пересчитываем прогресс вехи
     db.refresh(milestone)
-    progress = calculate_milestone_progress(milestone)
+    ms_info = calculate_milestone_progress(milestone)
 
-    return schemas.TaskCompleteResponse(success=True, milestone_progress=round(progress, 1))
+    return schemas.TaskCompleteResponse(success=True, milestone_progress=ms_info["progress"])
 
 
 @router.put("/{task_id}/reschedule")
@@ -359,10 +370,12 @@ def create_task(
                 status_code=400, detail="weekdays is required for recurring tasks"
             )
 
+        target = data.target_percent if data.target_percent is not None else milestone.default_action_percent
         action = models.RecurringAction(
             milestone_id=data.milestone_id,
             title=data.title,
             weekdays=data.weekdays,
+            target_percent=target,
         )
         db.add(action)
         db.commit()

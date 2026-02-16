@@ -15,6 +15,11 @@ export interface TaskView {
   completed: boolean;
   original_id: number;
   log_id: number | null;
+  target_percent?: number | null;    // Целевой % (только для recurring)
+  current_percent?: number | null;   // Текущий % выполнения (только для recurring)
+  is_target_reached?: boolean | null; // Достигнут ли target (только для recurring)
+  completed_count?: number | null;   // Выполнено раз (только для recurring)
+  expected_count?: number | null;    // Ожидалось раз (только для recurring)
 }
 
 export interface TaskRangeResponse {
