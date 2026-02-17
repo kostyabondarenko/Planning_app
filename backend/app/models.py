@@ -131,6 +131,8 @@ class RecurringAction(Base):
     )  # [1,3,5] = пн, ср, пт
     target_percent: Mapped[int] = mapped_column(default=80)  # Целевой % выполнения (1-100)
     is_completed: Mapped[bool] = mapped_column(default=False)  # Достигнут ли target_percent
+    start_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)  # Свой период (если None — milestone)
+    end_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)  # Свой период (если None — milestone)
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
 
     # Soft delete

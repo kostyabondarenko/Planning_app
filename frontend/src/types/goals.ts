@@ -16,7 +16,10 @@ export interface RecurringAction {
   is_target_reached: boolean; // current_percent >= target_percent
   expected_count: number; // Сколько раз должно быть выполнено
   completed_count: number; // Сколько раз выполнено
-  completion_percent: number; // Legacy: алиас для current_percent
+  start_date?: string | null; // Свой период (null = milestone)
+  end_date?: string | null;
+  effective_start_date?: string; // Вычисляемый effective период
+  effective_end_date?: string;
 }
 
 // Однократное действие (с дедлайном)
@@ -38,8 +41,9 @@ export interface Milestone {
   start_date: string; // ISO date
   end_date: string; // ISO date
   completion_condition?: string; // например "80%"
-  completion_percent: number; // требуемый процент (0-100)
+  default_action_percent?: number; // Default target для новых действий (legacy, не отображается в UI)
   created_at?: string;
+  all_actions_reached_target?: boolean; // Все действия достигли target_percent
   recurring_actions: RecurringAction[];
   one_time_actions: OneTimeAction[];
   progress: number; // Вычисляемый общий прогресс вехи
@@ -47,10 +51,9 @@ export interface Milestone {
 }
 
 // Действие при закрытии вехи
-export type MilestoneCloseAction = 
+export type MilestoneCloseAction =
   | { action: 'close_as_is' }
-  | { action: 'extend'; new_end_date: string }
-  | { action: 'reduce_percent'; new_completion_percent: number };
+  | { action: 'extend'; new_end_date: string };
 
 // Цель (Goal v2) - с периодами и вехами
 export interface GoalV2 {
@@ -72,6 +75,8 @@ export interface RecurringActionCreate {
   title: string;
   weekdays: number[];
   target_percent?: number; // 1-100, default 80
+  start_date?: string | null; // ISO date, null = milestone period
+  end_date?: string | null;
 }
 
 // Данные для создания однократного действия
@@ -86,7 +91,6 @@ export interface MilestoneCreate {
   start_date: string;
   end_date: string;
   completion_condition?: string;
-  completion_percent?: number;
   recurring_actions?: RecurringActionCreate[];
   one_time_actions?: OneTimeActionCreate[];
 }

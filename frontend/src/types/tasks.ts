@@ -36,6 +36,11 @@ export interface TaskCompleteRequest {
 export interface TaskCompleteResponse {
   success: boolean;
   milestone_progress: number;
+  // Обновлённые поля прогресса (только для recurring)
+  current_percent?: number | null;
+  completed_count?: number | null;
+  expected_count?: number | null;
+  is_target_reached?: boolean | null;
 }
 
 export interface TaskRescheduleRequest {

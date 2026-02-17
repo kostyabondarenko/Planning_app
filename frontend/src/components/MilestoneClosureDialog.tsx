@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  AlertTriangle, X, CheckCircle2, Calendar, TrendingDown, Loader2 
+import {
+  AlertTriangle, X, CheckCircle2, Calendar, Loader2
 } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { Milestone, MilestoneCloseAction } from '@/types/goals';
@@ -21,9 +21,8 @@ export default function MilestoneClosureDialog({
   onClose,
   onAction,
 }: MilestoneClosureDialogProps) {
-  const [selectedAction, setSelectedAction] = useState<'close_as_is' | 'extend' | 'reduce_percent' | null>(null);
+  const [selectedAction, setSelectedAction] = useState<'close_as_is' | 'extend' | null>(null);
   const [newEndDate, setNewEndDate] = useState('');
-  const [newPercent, setNewPercent] = useState(Math.floor(milestone.progress));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,7 +45,7 @@ export default function MilestoneClosureDialog({
         }
         action = { action: 'extend', new_end_date: newEndDate };
       } else {
-        action = { action: 'reduce_percent', new_completion_percent: newPercent };
+        return;
       }
 
       await onAction(action);
@@ -114,18 +113,14 @@ export default function MilestoneClosureDialog({
                   <span className="text-sm text-app-textMuted">Текущий прогресс</span>
                   <span className="text-lg font-bold text-app-text">{milestone.progress.toFixed(0)}%</span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-app-textMuted">Требовалось</span>
-                  <span className="text-lg font-bold text-app-warning">{milestone.completion_percent}%</span>
-                </div>
                 <div className="mt-3 h-2 bg-app-border rounded-full overflow-hidden">
-                  <div 
+                  <div
                     className="h-full bg-app-warning rounded-full transition-all"
                     style={{ width: `${Math.min(milestone.progress, 100)}%` }}
                   />
                 </div>
                 <p className="text-xs text-app-textMuted mt-2 text-center">
-                  Не хватает {(milestone.completion_percent - milestone.progress).toFixed(0)}%
+                  Не все действия достигли целевого процента
                 </p>
               </div>
 
@@ -201,57 +196,6 @@ export default function MilestoneClosureDialog({
                   )}
                 </AnimatePresence>
 
-                {/* Option 3: Reduce percent */}
-                <button
-                  onClick={() => setSelectedAction('reduce_percent')}
-                  className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
-                    selectedAction === 'reduce_percent'
-                      ? 'border-app-accent bg-app-accent/5'
-                      : 'border-app-border hover:border-app-accent/50'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${
-                      selectedAction === 'reduce_percent' ? 'bg-app-accent text-white' : 'bg-app-surfaceMuted text-app-textMuted'
-                    }`}>
-                      <TrendingDown size={20} />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-app-text">Снизить требуемый %</p>
-                      <p className="text-sm text-app-textMuted">
-                        Уменьшить порог до текущего прогресса и закрыть
-                      </p>
-                    </div>
-                  </div>
-                </button>
-
-                {/* Percent slider for reduce */}
-                <AnimatePresence>
-                  {selectedAction === 'reduce_percent' && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="ml-14 space-y-2"
-                    >
-                      <div className="flex justify-between text-sm">
-                        <span className="text-app-textMuted">Новый порог:</span>
-                        <span className="font-bold text-app-text">{newPercent}%</span>
-                      </div>
-                      <input
-                        type="range"
-                        min={0}
-                        max={Math.floor(milestone.progress)}
-                        value={newPercent}
-                        onChange={(e) => setNewPercent(Number(e.target.value))}
-                        className="range-brandbook"
-                      />
-                      <p className="text-xs text-app-textMuted">
-                        Максимум: {Math.floor(milestone.progress)}% (текущий прогресс)
-                      </p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
               </div>
 
               {/* Error */}

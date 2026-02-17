@@ -117,6 +117,8 @@ class RecurringActionBase(BaseModel):
 
 class RecurringActionCreate(RecurringActionBase):
     target_percent: Optional[int] = Field(default=None, ge=1, le=100)  # None = использовать milestone.default_action_percent
+    start_date: Optional[date] = None  # Свой период (если None — используется milestone)
+    end_date: Optional[date] = None
 
 
 class RecurringActionUpdate(BaseModel):
@@ -125,6 +127,8 @@ class RecurringActionUpdate(BaseModel):
     title: Optional[str] = None
     weekdays: Optional[List[int]] = None
     target_percent: Optional[int] = Field(default=None, ge=1, le=100)
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
 
     @field_validator("weekdays")
     @classmethod
@@ -148,6 +152,10 @@ class RecurringActionResponse(RecurringActionBase):
     is_target_reached: bool = False  # current_percent >= target_percent
     expected_count: int = 0  # Сколько раз должно быть выполнено
     completed_count: int = 0  # Сколько раз выполнено
+    start_date: Optional[date] = None  # Свой период (None = milestone)
+    end_date: Optional[date] = None
+    effective_start_date: Optional[date] = None  # Вычисляемый: свой или milestone
+    effective_end_date: Optional[date] = None  # Вычисляемый: свой или milestone
     created_at: Optional[datetime] = None
     model_config = ConfigDict(from_attributes=True)
 
@@ -232,9 +240,8 @@ class MilestoneComplete(BaseModel):
 class MilestoneCloseAction(BaseModel):
     """Действие при закрытии вехи, когда условие не выполнено."""
 
-    action: str  # "close_as_is", "extend", "reduce_percent"
+    action: str  # "close_as_is", "extend"
     new_end_date: Optional[date] = None  # Для action="extend"
-    new_default_action_percent: Optional[int] = Field(default=None, ge=1, le=100)  # Для action="reduce_percent"
 
 
 class BulkTargetPercentUpdate(BaseModel):
@@ -365,6 +372,11 @@ class TaskCompleteResponse(BaseModel):
 
     success: bool
     milestone_progress: float
+    # Обновлённые поля прогресса (только для recurring)
+    current_percent: Optional[float] = None
+    completed_count: Optional[int] = None
+    expected_count: Optional[int] = None
+    is_target_reached: Optional[bool] = None
 
 
 class TaskReschedule(BaseModel):

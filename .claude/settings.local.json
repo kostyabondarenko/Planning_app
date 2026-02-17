@@ -30,7 +30,17 @@
       "Bash(npm install:*)",
       "Bash(node:*)",
       "Bash(npx:*)",
-      "Bash(git -C \"C:\\\\Работа\\\\Развитие\\\\LLM\\\\Planning\\\\Planning_app\" status)"
+      "Bash(git -C \"C:\\\\Работа\\\\Развитие\\\\LLM\\\\Planning\\\\Planning_app\" status)",
+      "Bash(\"C:\\\\Users\\\\konst.bondarenko\\\\AppData\\\\Local\\\\Python\\\\bin\\\\python3.exe\" -c \"from app.routers import goals_v2, calendar, tasks; from app import schemas; print\\(''All imports OK''\\)\")",
+      "Bash(\"venv\\\\Scripts\\\\python.exe\" -c \"from app.main import app; print\\(''OK: app loaded''\\)\")",
+      "Bash(dir /b \"C:\\\\Работа\\\\Развитие\\\\LLM\\\\Planning\\\\Planning_app\\\\backend\\\\.venv\\\\Scripts\\\\python*\")",
+      "Bash(dir:*)",
+      "Bash(dir /b \"C:\\\\Работа\\\\Развитие\\\\LLM\\\\Planning\\\\Planning_app\\\\.venv\\\\Scripts\\\\python*\")",
+      "Bash(\"C:\\\\Работа\\\\Развитие\\\\LLM\\\\Planning\\\\Planning_app\\\\backend\\\\venv\\\\Scripts\\\\python.exe\" -m pytest \"C:\\\\Работа\\\\Развитие\\\\LLM\\\\Planning\\\\Planning_app\\\\backend\\\\tests\\\\test_action_target_percent.py\" -v)",
+      "Bash(git add:*)",
+      "Bash(python -m alembic:*)",
+      "Bash(ls:*)",
+      "Bash(./venv/Scripts/python.exe:*)"
     ]
   }
 }

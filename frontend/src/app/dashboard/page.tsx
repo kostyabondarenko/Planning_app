@@ -163,7 +163,7 @@ function GoalCard({ goal, colorIndex }: { goal: GoalV2; colorIndex: number }) {
   const color = getGoalColor(colorIndex);
   const milestonesCount = goal.milestones.length;
   const completedMilestones = goal.milestones.filter(
-    m => m.progress >= m.completion_percent
+    m => m.all_actions_reached_target || m.is_closed
   ).length;
 
   return (

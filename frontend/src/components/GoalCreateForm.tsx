@@ -56,7 +56,6 @@ export default function GoalCreateForm({ isOpen, onClose, onSubmit }: GoalCreate
         ? milestones[milestones.length - 1].end_date
         : startDate,
       end_date: '',
-      completion_percent: 80,
       isExpanded: true,
     };
     setMilestones(prev => [...prev, newMilestone]);
@@ -107,13 +106,6 @@ export default function GoalCreateForm({ isOpen, onClose, onSubmit }: GoalCreate
       if (m.start_date && m.end_date && new Date(m.start_date) > new Date(m.end_date)) {
         newErrors[`milestone_${m.tempId}_end`] = 'Дата окончания должна быть позже даты начала';
       }
-      // Проверка пересечения с предыдущей вехой
-      if (index > 0 && m.start_date) {
-        const prevMilestone = milestones[index - 1];
-        if (prevMilestone.end_date && new Date(m.start_date) < new Date(prevMilestone.end_date)) {
-          newErrors[`milestone_${m.tempId}_start`] = 'Вехи не должны пересекаться';
-        }
-      }
     });
 
     setErrors(newErrors);
@@ -137,7 +129,6 @@ export default function GoalCreateForm({ isOpen, onClose, onSubmit }: GoalCreate
           title: m.title.trim(),
           start_date: m.start_date,
           end_date: m.end_date,
-          completion_percent: m.completion_percent,
         })),
       };
 
@@ -236,7 +227,7 @@ export default function GoalCreateForm({ isOpen, onClose, onSubmit }: GoalCreate
 
               {/* Секция вех */}
               <div>
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <Flag size={16} style={{ color: 'var(--accent-secondary)' }} />
                     <span className="text-sm font-semibold text-app-text">
@@ -254,6 +245,10 @@ export default function GoalCreateForm({ isOpen, onClose, onSubmit }: GoalCreate
                     Добавить веху
                   </Button>
                 </div>
+
+                <p className="text-xs mb-4" style={{ color: 'var(--text-tertiary)' }}>
+                  Вехи могут выполняться параллельно
+                </p>
 
                 {/* Подсказка если нет вех */}
                 {milestones.length === 0 && (
@@ -326,7 +321,6 @@ interface MilestoneCardProps {
     title: string;
     start_date: string;
     end_date: string;
-    completion_percent?: number;
     isExpanded: boolean;
   };
   index: number;
@@ -434,25 +428,11 @@ function MilestoneCard({ milestone, index, errors, onUpdate, onRemove, onToggle 
             </div>
           </div>
 
-          {/* Процент выполнения */}
-          <div>
-            <label className="block text-xs font-semibold text-app-textMuted mb-1.5 uppercase tracking-wide">
-              Условие закрытия: {milestone.completion_percent}% действий
-            </label>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              step="5"
-              value={milestone.completion_percent}
-              onChange={(e) => onUpdate({ completion_percent: parseInt(e.target.value) })}
-              className="range-brandbook"
-            />
-            <div className="flex justify-between text-xs text-app-textMuted mt-1">
-              <span>0%</span>
-              <span>50%</span>
-              <span>100%</span>
-            </div>
+          {/* Информация о закрытии */}
+          <div className="p-3 bg-app-accentSoft rounded-xl">
+            <p className="text-xs text-app-accent">
+              Веха будет закрыта, когда все действия достигнут своих целей
+            </p>
           </div>
         </div>
       )}

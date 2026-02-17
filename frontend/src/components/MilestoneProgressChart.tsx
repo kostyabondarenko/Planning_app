@@ -30,9 +30,8 @@ export default function MilestoneProgressChart({ milestones }: MilestoneProgress
   return (
     <div className="space-y-4">
       {sortedMilestones.map((milestone, index) => {
-        const isCompleted = milestone.progress >= milestone.completion_percent || milestone.is_closed;
+        const isCompleted = milestone.all_actions_reached_target || milestone.is_closed;
         const progressPercent = Math.min(milestone.progress, 100);
-        const targetPercent = milestone.completion_percent;
         const durationDays = getMilestoneDurationDays(milestone.start_date, milestone.end_date);
         const displayPercent = roundProgress(progressPercent, durationDays);
         const daysUntilEnd = Math.ceil(
@@ -80,24 +79,11 @@ export default function MilestoneProgressChart({ milestones }: MilestoneProgress
                     {displayPercent}%
                   </span>
                 )}
-                {!isCompleted && (
-                  <span className="text-xs text-app-textMuted">
-                    / {targetPercent}%
-                  </span>
-                )}
               </div>
             </div>
 
             {/* Прогресс-бар */}
             <div className="relative h-6 rounded-full overflow-hidden" style={{ background: 'var(--border-light)' }}>
-              {/* Целевая отметка */}
-              <div
-                className="absolute top-0 bottom-0 w-0.5 z-10"
-                style={{ left: `${targetPercent}%`, background: 'var(--text-tertiary)', opacity: 0.5 }}
-              >
-                <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full" style={{ background: 'var(--text-tertiary)', opacity: 0.5 }} />
-              </div>
-
               {/* Прогресс */}
               <motion.div
                 initial={{ width: 0 }}

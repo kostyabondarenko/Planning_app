@@ -22,7 +22,7 @@ interface MilestoneCreateFormProps {
   onClose: () => void;
   onSubmit: (data: MilestoneCreate) => Promise<void>;
   goalId: number;
-  /** Существующие вехи для валидации пересечения периодов */
+  /** Существующие вехи (для справки) */
   existingMilestones?: Milestone[];
   /** Период цели (для подсказки дат) */
   goalStartDate?: string;
@@ -160,23 +160,6 @@ export default function MilestoneCreateForm({
     }
     if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
       newErrors.endDate = 'Дата окончания должна быть позже даты начала';
-    }
-
-    // Проверка пересечения с существующими вехами
-    if (startDate && endDate) {
-      const newStart = new Date(startDate);
-      const newEnd = new Date(endDate);
-
-      for (const ms of existingMilestones) {
-        const msStart = new Date(ms.start_date);
-        const msEnd = new Date(ms.end_date);
-
-        // Два периода пересекаются если: start1 <= end2 AND start2 <= end1
-        if (newStart <= msEnd && msStart <= newEnd) {
-          newErrors.startDate = `Период пересекается с вехой "${ms.title}"`;
-          break;
-        }
-      }
     }
 
     // Валидация регулярных действий
@@ -347,6 +330,9 @@ export default function MilestoneCreateForm({
                   <p className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>
                     Веха закрывается, когда все регулярные действия достигнут своих целевых процентов.
                     Укажите целевой процент для каждого действия ниже.
+                  </p>
+                  <p className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>
+                    Вехи могут выполняться параллельно — периоды могут пересекаться.
                   </p>
                 </div>
               </div>

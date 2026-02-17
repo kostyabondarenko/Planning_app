@@ -96,7 +96,7 @@ export default function GoalDetailPage() {
     ? Math.ceil((new Date(goal.end_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
     : null;
 
-  const completedMilestones = goal.milestones.filter(m => m.progress >= m.completion_percent).length;
+  const completedMilestones = goal.milestones.filter(m => m.all_actions_reached_target || m.is_closed).length;
   const totalActions = goal.milestones.reduce(
     (sum, m) => sum + m.recurring_actions.length + m.one_time_actions.length,
     0
@@ -254,7 +254,13 @@ export default function GoalDetailPage() {
               {/* Milestones list */}
               {goal.milestones.length > 0 ? (
                 <div className="space-y-4" style={{ position: 'relative', zIndex: 1 }}>
-                  {goal.milestones.map((milestone, index) => (
+                  {[...goal.milestones]
+                    .sort((a, b) => {
+                      const startDiff = new Date(a.start_date).getTime() - new Date(b.start_date).getTime();
+                      if (startDiff !== 0) return startDiff;
+                      return new Date(a.end_date).getTime() - new Date(b.end_date).getTime();
+                    })
+                    .map((milestone, index) => (
                     <MilestoneCard
                       key={milestone.id}
                       milestone={milestone}
@@ -348,7 +354,7 @@ function MilestoneCard({ milestone, index, isDeleting, goalId, onDelete }: Miles
   const router = useRouter();
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const isCompleted = milestone.progress >= milestone.completion_percent || milestone.is_closed;
+  const isCompleted = milestone.all_actions_reached_target || milestone.is_closed;
   const durationDays = getMilestoneDurationDays(milestone.start_date, milestone.end_date);
   const displayProgress = roundProgress(milestone.progress, durationDays);
   const daysUntilEnd = Math.ceil(
@@ -431,9 +437,6 @@ function MilestoneCard({ milestone, index, isDeleting, goalId, onDelete }: Miles
                 {displayProgress}%
               </p>
             )}
-            {!isCompleted && (
-              <p className="text-xs text-app-textMuted">из {milestone.completion_percent}%</p>
-            )}
           </div>
 
           {/* Кнопка перехода */}
@@ -511,11 +514,11 @@ function MilestoneCard({ milestone, index, isDeleting, goalId, onDelete }: Miles
                     </div>
                     <div className="text-right">
                       <p className={`text-sm font-bold ${
-                        action.completion_percent >= 100 ? 'text-app-success' :
-                        action.completion_percent >= 80 ? 'text-app-success' :
-                        action.completion_percent >= 50 ? 'text-app-warning' : 'text-app-textMuted'
+                        (action.current_percent ?? 0) >= 100 ? 'text-app-success' :
+                        (action.current_percent ?? 0) >= 80 ? 'text-app-success' :
+                        (action.current_percent ?? 0) >= 50 ? 'text-app-warning' : 'text-app-textMuted'
                       }`}>
-                        {action.completion_percent >= 100 ? '100%' : `${roundProgress(action.completion_percent, durationDays)}%`}
+                        {(action.current_percent ?? 0) >= 100 ? '100%' : `${roundProgress(action.current_percent ?? 0, durationDays)}%`}
                       </p>
                     </div>
                   </div>

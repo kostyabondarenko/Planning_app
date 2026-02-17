@@ -44,27 +44,6 @@ def get_milestone_or_404(
     return milestone
 
 
-def validate_milestone_periods(
-    db: Session, goal_id: int, start_date: date, end_date: date, exclude_id: int = None
-):
-    """
-    Валидация периодов вех: они НЕ должны пересекаться.
-    Два периода пересекаются если: start1 <= end2 AND start2 <= end1
-    """
-    query = db.query(models.Milestone).filter(models.Milestone.goal_id == goal_id)
-
-    if exclude_id:
-        query = query.filter(models.Milestone.id != exclude_id)
-
-    existing_milestones = query.all()
-
-    for ms in existing_milestones:
-        # Проверка пересечения периодов
-        if start_date <= ms.end_date and ms.start_date <= end_date:
-            raise HTTPException(
-                status_code=400, detail=f"Период пересекается с вехой '{ms.title}'"
-            )
-
 
 def calculate_recurring_action_progress(
     action: models.RecurringAction, start_date: date, end_date: date
@@ -122,8 +101,10 @@ def calculate_milestone_progress(milestone: models.Milestone) -> dict:
     for action in milestone.recurring_actions:
         if action.is_deleted:
             continue
+        effective_start = action.start_date or milestone.start_date
+        effective_end = action.end_date or milestone.end_date
         progress_info = calculate_recurring_action_progress(
-            action, milestone.start_date, milestone.end_date
+            action, effective_start, effective_end
         )
         total_weight += 1
         total_progress += progress_info["current_percent"]
@@ -174,8 +155,10 @@ def calculate_goal_progress(goal: models.Goal) -> tuple[float, bool]:
 def recalculate_action_completion(action: models.RecurringAction) -> dict:
     """Пересчитать is_completed для действия на основе текущего прогресса."""
     milestone = action.milestone
+    effective_start = action.start_date or milestone.start_date
+    effective_end = action.end_date or milestone.end_date
     progress_info = calculate_recurring_action_progress(
-        action, milestone.start_date, milestone.end_date
+        action, effective_start, effective_end
     )
     action.is_completed = progress_info["is_target_reached"]
     return progress_info
@@ -185,10 +168,12 @@ def _action_to_response(
     action: models.RecurringAction, progress_info: dict = None
 ) -> schemas.RecurringActionResponse:
     """Преобразовать модель действия в response-схему."""
+    milestone = action.milestone
+    effective_start = action.start_date or milestone.start_date
+    effective_end = action.end_date or milestone.end_date
     if progress_info is None:
-        milestone = action.milestone
         progress_info = calculate_recurring_action_progress(
-            action, milestone.start_date, milestone.end_date
+            action, effective_start, effective_end
         )
     return schemas.RecurringActionResponse(
         id=action.id,
@@ -201,6 +186,10 @@ def _action_to_response(
         is_target_reached=progress_info["is_target_reached"],
         expected_count=progress_info["expected_count"],
         completed_count=progress_info["completed_count"],
+        start_date=action.start_date,
+        end_date=action.end_date,
+        effective_start_date=effective_start,
+        effective_end_date=effective_end,
         created_at=action.created_at,
     )
 
@@ -252,13 +241,8 @@ def create_goal(
     db.add(new_goal)
     db.flush()  # Получаем ID без коммита
 
-    # Валидируем и создаём вехи
+    # Создаём вехи (параллельные вехи разрешены)
     for i, ms_data in enumerate(goal_data.milestones):
-        # Валидация периодов
-        validate_milestone_periods(
-            db, new_goal.id, ms_data.start_date, ms_data.end_date
-        )
-
         milestone = models.Milestone(
             goal_id=new_goal.id,
             title=ms_data.title,
@@ -273,11 +257,14 @@ def create_goal(
         # Создаём регулярные действия
         for ra_data in ms_data.recurring_actions:
             target = ra_data.target_percent if ra_data.target_percent is not None else milestone.default_action_percent
+            _validate_action_dates(ra_data.start_date, ra_data.end_date, milestone)
             recurring_action = models.RecurringAction(
                 milestone_id=milestone.id,
                 title=ra_data.title,
                 weekdays=ra_data.weekdays,
                 target_percent=target,
+                start_date=ra_data.start_date,
+                end_date=ra_data.end_date,
             )
             db.add(recurring_action)
 
@@ -455,11 +442,6 @@ def create_milestone(
     """Создать веху для цели."""
     get_goal_or_404(db, goal_id, current_user.id)
 
-    # Валидация периодов
-    validate_milestone_periods(
-        db, goal_id, milestone_data.start_date, milestone_data.end_date
-    )
-
     milestone = models.Milestone(
         goal_id=goal_id,
         title=milestone_data.title,
@@ -473,12 +455,15 @@ def create_milestone(
 
     # Создаём действия
     for ra_data in milestone_data.recurring_actions:
+        _validate_action_dates(ra_data.start_date, ra_data.end_date, milestone)
         target = ra_data.target_percent if ra_data.target_percent is not None else milestone.default_action_percent
         recurring_action = models.RecurringAction(
             milestone_id=milestone.id,
             title=ra_data.title,
             weekdays=ra_data.weekdays,
             target_percent=target,
+            start_date=ra_data.start_date,
+            end_date=ra_data.end_date,
         )
         db.add(recurring_action)
 
@@ -526,17 +511,6 @@ def update_milestone(
     """Обновить веху."""
     milestone = get_milestone_or_404(db, milestone_id, current_user.id)
 
-    # Валидация периодов если меняются даты
-    new_start = (
-        milestone_data.start_date if milestone_data.start_date else milestone.start_date
-    )
-    new_end = milestone_data.end_date if milestone_data.end_date else milestone.end_date
-
-    if milestone_data.start_date or milestone_data.end_date:
-        validate_milestone_periods(
-            db, milestone.goal_id, new_start, new_end, exclude_id=milestone_id
-        )
-
     # Обновляем поля
     if milestone_data.title is not None:
         milestone.title = milestone_data.title
@@ -577,11 +551,10 @@ def close_milestone(
 ):
     """
     Закрыть веху с выбором действия.
-    
+
     Действия:
     - close_as_is: Закрыть веху с текущим прогрессом
     - extend: Продлить веху (указать new_end_date)
-    - reduce_percent: Снизить требуемый процент (указать new_default_action_percent)
     """
     milestone = get_milestone_or_404(db, milestone_id, current_user.id)
 
@@ -600,38 +573,12 @@ def close_milestone(
         if close_data.new_end_date <= milestone.end_date:
             raise HTTPException(status_code=400, detail="Новая дата должна быть позже текущей")
 
-        # Проверяем что новая дата не пересекается с другими вехами
-        validate_milestone_periods(
-            db, milestone.goal_id, milestone.start_date, close_data.new_end_date,
-            exclude_id=milestone_id
-        )
-
         milestone.end_date = close_data.new_end_date
 
-    elif close_data.action == "reduce_percent":
-        # Снижаем требуемый процент
-        if close_data.new_default_action_percent is None:
-            raise HTTPException(
-                status_code=400,
-                detail="new_default_action_percent обязателен для действия reduce_percent"
-            )
-
-        ms_info = calculate_milestone_progress(milestone)
-
-        if close_data.new_default_action_percent > ms_info["progress"]:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Новый процент ({close_data.new_default_action_percent}%) должен быть не больше текущего прогресса ({ms_info['progress']:.0f}%)"
-            )
-
-        milestone.default_action_percent = close_data.new_default_action_percent
-        milestone.completion_condition = f"{close_data.new_default_action_percent}%"
-        milestone.is_closed = True
-    
     else:
         raise HTTPException(
-            status_code=400, 
-            detail="Неизвестное действие. Используйте: close_as_is, extend, reduce_percent"
+            status_code=400,
+            detail="Неизвестное действие. Используйте: close_as_is, extend"
         )
     
     db.commit()
@@ -686,6 +633,18 @@ def complete_milestone(
     return _milestone_to_response(milestone)
 
 
+def _validate_action_dates(
+    start_date: date | None, end_date: date | None, milestone: models.Milestone
+):
+    """Валидация дат периода действия относительно вехи."""
+    if start_date and end_date and start_date >= end_date:
+        raise HTTPException(status_code=400, detail="start_date должна быть раньше end_date")
+    if start_date and start_date < milestone.start_date:
+        raise HTTPException(status_code=400, detail="start_date действия не может быть раньше начала вехи")
+    if end_date and end_date > milestone.end_date:
+        raise HTTPException(status_code=400, detail="end_date действия не может быть позже окончания вехи")
+
+
 # ============================================
 # CRUD для регулярных действий
 # ============================================
@@ -705,6 +664,9 @@ def create_recurring_action(
     """Создать регулярное действие."""
     milestone = get_milestone_or_404(db, milestone_id, current_user.id)
 
+    # Валидация дат периода действия
+    _validate_action_dates(action_data.start_date, action_data.end_date, milestone)
+
     # Если target_percent не указан — берём default из вехи
     target = action_data.target_percent if action_data.target_percent is not None else milestone.default_action_percent
 
@@ -713,6 +675,8 @@ def create_recurring_action(
         title=action_data.title,
         weekdays=action_data.weekdays,
         target_percent=target,
+        start_date=action_data.start_date,
+        end_date=action_data.end_date,
     )
     db.add(action)
     db.commit()
@@ -775,6 +739,17 @@ def update_recurring_action(
         action.weekdays = action_data.weekdays
     if action_data.target_percent is not None:
         action.target_percent = action_data.target_percent
+
+    # Обновление дат периода действия
+    dates_changed = False
+    if action_data.start_date is not None:
+        action.start_date = action_data.start_date
+        dates_changed = True
+    if action_data.end_date is not None:
+        action.end_date = action_data.end_date
+        dates_changed = True
+    if dates_changed:
+        _validate_action_dates(action.start_date, action.end_date, action.milestone)
 
     # Пересчитываем is_completed после любого изменения (включая target_percent)
     progress_info = recalculate_action_completion(action)
@@ -1028,8 +1003,10 @@ def get_goal_progress(
         for ra in ms.recurring_actions:
             if ra.is_deleted:
                 continue
+            eff_start = ra.start_date or ms.start_date
+            eff_end = ra.end_date or ms.end_date
             progress_info = calculate_recurring_action_progress(
-                ra, ms.start_date, ms.end_date
+                ra, eff_start, eff_end
             )
             recurring_actions_progress.append({
                 "id": ra.id,

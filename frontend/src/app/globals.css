@@ -2625,4 +2625,20 @@
     border-color: color-mix(in srgb, var(--accent-error) 30%, transparent) !important;
     background: color-mix(in srgb, var(--accent-error) 4%, var(--bg-secondary)) !important;
   }
+
+  /* Бейдж периода действия */
+  .action-period-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    background: color-mix(in srgb, var(--accent-primary) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent-primary) 20%, transparent);
+    border-radius: var(--radius-full);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--accent-primary);
+    white-space: nowrap;
+    transition: all var(--transition-fast);
+  }
 }

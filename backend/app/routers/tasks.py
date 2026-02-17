@@ -54,16 +54,21 @@ def _build_recurring_tasks(
         for action in milestone.recurring_actions:
             if action.is_deleted:
                 continue
+            # Effective period действия
+            effective_start = action.start_date or milestone.start_date
+            effective_end = action.end_date or milestone.end_date
             # Рассчитываем прогресс действия один раз
             progress_info = calculate_recurring_action_progress(
-                action, milestone.start_date, milestone.end_date
+                action, effective_start, effective_end
             )
             # Создаём лог-маппинг: date -> log
             log_by_date = {log.date: log for log in action.logs}
 
-            # Итерируем по дням диапазона
-            current = start_date
-            while current <= end_date:
+            # Итерируем по дням диапазона (пересечение запроса и effective period)
+            range_start = max(start_date, effective_start)
+            range_end = min(end_date, effective_end)
+            current = range_start
+            while current <= range_end:
                 # weekday() возвращает 0-6 (Mon-Sun), наши weekdays это 1-7
                 if (current.weekday() + 1) in action.weekdays:
                     log = log_by_date.get(current)
@@ -250,7 +255,26 @@ def complete_task(
     db.refresh(milestone)
     ms_info = calculate_milestone_progress(milestone)
 
-    return schemas.TaskCompleteResponse(success=True, milestone_progress=ms_info["progress"])
+    # Для recurring-задач — пересчитываем прогресс действия
+    progress_fields = {}
+    if data.type == "recurring":
+        effective_start = action.start_date or milestone.start_date
+        effective_end = action.end_date or milestone.end_date
+        progress_info = calculate_recurring_action_progress(
+            action, effective_start, effective_end
+        )
+        progress_fields = {
+            "current_percent": progress_info["current_percent"],
+            "completed_count": progress_info["completed_count"],
+            "expected_count": progress_info["expected_count"],
+            "is_target_reached": progress_info["is_target_reached"],
+        }
+
+    return schemas.TaskCompleteResponse(
+        success=True,
+        milestone_progress=ms_info["progress"],
+        **progress_fields,
+    )
 
 
 @router.put("/{task_id}/reschedule")

@@ -10,12 +10,11 @@ import Card from '@/components/ui/Card';
 interface MilestoneEditFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: { title?: string; start_date?: string; end_date?: string; completion_percent?: number }) => Promise<void>;
+  onSubmit: (data: { title?: string; start_date?: string; end_date?: string }) => Promise<void>;
   initialData: {
     title: string;
     start_date: string;
     end_date: string;
-    completion_percent: number;
   };
 }
 
@@ -23,7 +22,6 @@ export default function MilestoneEditForm({ isOpen, onClose, onSubmit, initialDa
   const [title, setTitle] = useState(initialData.title);
   const [startDate, setStartDate] = useState(initialData.start_date);
   const [endDate, setEndDate] = useState(initialData.end_date);
-  const [completionPercent, setCompletionPercent] = useState(initialData.completion_percent);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -32,7 +30,6 @@ export default function MilestoneEditForm({ isOpen, onClose, onSubmit, initialDa
       setTitle(initialData.title);
       setStartDate(initialData.start_date);
       setEndDate(initialData.end_date);
-      setCompletionPercent(initialData.completion_percent);
       setErrors({});
     }
   }, [isOpen, initialData]);
@@ -56,13 +53,9 @@ export default function MilestoneEditForm({ isOpen, onClose, onSubmit, initialDa
       newErrors.endDate = 'Дата окончания должна быть позже даты начала';
     }
 
-    if (completionPercent < 1 || completionPercent > 100) {
-      newErrors.completionPercent = 'Значение от 1 до 100';
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  }, [title, startDate, endDate, completionPercent]);
+  }, [title, startDate, endDate]);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,7 +67,6 @@ export default function MilestoneEditForm({ isOpen, onClose, onSubmit, initialDa
         title: title.trim(),
         start_date: startDate,
         end_date: endDate,
-        completion_percent: completionPercent,
       });
       onClose();
     } catch (error) {
@@ -84,7 +76,7 @@ export default function MilestoneEditForm({ isOpen, onClose, onSubmit, initialDa
     } finally {
       setIsSubmitting(false);
     }
-  }, [validate, onSubmit, onClose, title, startDate, endDate, completionPercent]);
+  }, [validate, onSubmit, onClose, title, startDate, endDate]);
 
   return (
     <AnimatePresence>
@@ -173,25 +165,14 @@ export default function MilestoneEditForm({ isOpen, onClose, onSubmit, initialDa
                     </div>
                   </div>
 
-                  {/* Completion percent */}
-                  <div>
-                    <label className="block text-sm font-semibold text-app-text mb-2">
-                      Требуемый процент выполнения
-                    </label>
-                    <div className="flex items-center gap-3">
-                      <Input
-                        type="number"
-                        min={1}
-                        max={100}
-                        value={completionPercent}
-                        onChange={(e) => setCompletionPercent(Number(e.target.value))}
-                        className={`w-24 ${errors.completionPercent ? 'border-app-danger' : ''}`}
-                      />
-                      <span className="text-app-textMuted font-medium">%</span>
-                    </div>
-                    {errors.completionPercent && (
-                      <p className="mt-1 text-sm text-app-danger">{errors.completionPercent}</p>
-                    )}
+                  {/* Info text */}
+                  <div className="p-3 bg-app-accentSoft rounded-xl space-y-1">
+                    <p className="text-sm text-app-accent">
+                      Веха будет закрыта, когда все действия достигнут своих целей
+                    </p>
+                    <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                      Вехи могут выполняться параллельно — периоды могут пересекаться
+                    </p>
                   </div>
 
                   {/* Submit error */}

@@ -57,6 +57,8 @@ export default function MilestoneDetailPage() {
   const [newRecurringTitle, setNewRecurringTitle] = useState('');
   const [newRecurringWeekdays, setNewRecurringWeekdays] = useState<number[]>([]);
   const [newRecurringTargetPercent, setNewRecurringTargetPercent] = useState(80);
+  const [newRecurringStartDate, setNewRecurringStartDate] = useState('');
+  const [newRecurringEndDate, setNewRecurringEndDate] = useState('');
   const [newOneTimeTitle, setNewOneTimeTitle] = useState('');
   const [newOneTimeDeadline, setNewOneTimeDeadline] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -74,6 +76,8 @@ export default function MilestoneDetailPage() {
   const [editRecurringTitle, setEditRecurringTitle] = useState('');
   const [editRecurringWeekdays, setEditRecurringWeekdays] = useState<number[]>([]);
   const [editRecurringTargetPercent, setEditRecurringTargetPercent] = useState(80);
+  const [editRecurringStartDate, setEditRecurringStartDate] = useState('');
+  const [editRecurringEndDate, setEditRecurringEndDate] = useState('');
 
   const [editingOneTimeId, setEditingOneTimeId] = useState<number | null>(null);
   const [editOneTimeTitle, setEditOneTimeTitle] = useState('');
@@ -92,7 +96,7 @@ export default function MilestoneDetailPage() {
       endDate.setHours(0, 0, 0, 0);
 
       const isExpired = today > endDate;
-      const isConditionMet = milestone.progress >= milestone.completion_percent;
+      const isConditionMet = milestone.all_actions_reached_target;
 
       if (isExpired && isConditionMet) {
         // Автозакрытие: условие выполнено, срок истёк
@@ -121,7 +125,7 @@ export default function MilestoneDetailPage() {
   };
 
   // Обработчик редактирования вехи
-  const handleUpdateMilestone = async (data: { title?: string; start_date?: string; end_date?: string; completion_percent?: number }) => {
+  const handleUpdateMilestone = async (data: { title?: string; start_date?: string; end_date?: string }) => {
     await updateMilestone(data);
     showToast('success', 'Веха обновлена');
   };
@@ -143,10 +147,14 @@ export default function MilestoneDetailPage() {
         title: newRecurringTitle.trim(),
         weekdays: newRecurringWeekdays,
         target_percent: newRecurringTargetPercent,
+        start_date: newRecurringStartDate || null,
+        end_date: newRecurringEndDate || null,
       });
       setNewRecurringTitle('');
       setNewRecurringWeekdays([]);
       setNewRecurringTargetPercent(80);
+      setNewRecurringStartDate('');
+      setNewRecurringEndDate('');
       setShowAddRecurring(false);
       showToast('success', 'Действие добавлено');
     } finally {
@@ -195,11 +203,13 @@ export default function MilestoneDetailPage() {
   };
 
   // Начать inline-редактирование регулярного действия
-  const startEditRecurring = (actionId: number, title: string, weekdays: number[], targetPercent: number) => {
-    setEditingRecurringId(actionId);
-    setEditRecurringTitle(title);
-    setEditRecurringWeekdays([...weekdays]);
-    setEditRecurringTargetPercent(targetPercent);
+  const startEditRecurring = (action: { id: number; title: string; weekdays: number[]; target_percent: number; start_date?: string | null; end_date?: string | null }) => {
+    setEditingRecurringId(action.id);
+    setEditRecurringTitle(action.title);
+    setEditRecurringWeekdays([...action.weekdays]);
+    setEditRecurringTargetPercent(action.target_percent);
+    setEditRecurringStartDate(action.start_date || '');
+    setEditRecurringEndDate(action.end_date || '');
   };
 
   // Сохранить inline-редактирование регулярного действия
@@ -210,6 +220,8 @@ export default function MilestoneDetailPage() {
         title: editRecurringTitle.trim(),
         weekdays: editRecurringWeekdays,
         target_percent: editRecurringTargetPercent,
+        start_date: editRecurringStartDate || null,
+        end_date: editRecurringEndDate || null,
       });
       showToast('success', 'Действие обновлено');
     } catch {
@@ -268,7 +280,7 @@ export default function MilestoneDetailPage() {
     );
   }
 
-  const isConditionMet = milestone.progress >= milestone.completion_percent;
+  const isConditionMet = milestone.all_actions_reached_target ?? false;
   const daysUntilEnd = Math.ceil(
     (new Date(milestone.end_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
   );
@@ -449,7 +461,7 @@ export default function MilestoneDetailPage() {
                     Веха успешно завершена
                   </p>
                   <p className="text-sm text-app-textMuted">
-                    Условие выполнения достигнуто ({displayProgress}% из {milestone.completion_percent}%)
+                    Все действия достигли целевого процента ({displayProgress}%)
                   </p>
                 </div>
               </motion.div>
@@ -469,7 +481,7 @@ export default function MilestoneDetailPage() {
                 <div>
                   <p className="font-semibold text-app-textMuted">Веха закрыта</p>
                   <p className="text-sm text-app-textMuted">
-                    Завершена с прогрессом {displayProgress}% (требовалось {milestone.completion_percent}%)
+                    Завершена с прогрессом {displayProgress}%
                   </p>
                 </div>
               </motion.div>
@@ -492,7 +504,7 @@ export default function MilestoneDetailPage() {
                       Срок вехи истёк
                     </p>
                     <p className="text-sm text-app-textMuted">
-                      Прогресс {displayProgress}%, требуется {milestone.completion_percent}%. Выберите действие.
+                      Прогресс {displayProgress}%. Не все действия достигли цели. Выберите действие.
                     </p>
                   </div>
                 </div>
@@ -531,12 +543,7 @@ export default function MilestoneDetailPage() {
                 <div className="mt-4 text-center">
                   {!isConditionMet && !milestone.is_closed && (
                     <p className="text-sm text-app-textMuted">
-                      Требуется: <span className="font-bold text-app-text">{milestone.completion_percent}%</span>
-                    </p>
-                  )}
-                  {milestone.completion_condition && (
-                    <p className="text-xs text-app-textMuted mt-1">
-                      {milestone.completion_condition}
+                      Веха закроется, когда все действия достигнут целей
                     </p>
                   )}
                 </div>
@@ -660,6 +667,35 @@ export default function MilestoneDetailPage() {
                         onChange={setNewRecurringTargetPercent}
                         label="Целевой процент"
                       />
+                      <div>
+                        <label className="block text-sm font-semibold text-app-text mb-2">
+                          <Calendar size={14} className="inline mr-1" />
+                          Период действия
+                        </label>
+                        <div className="grid grid-cols-2 gap-3">
+                          <Input
+                            type="date"
+                            value={newRecurringStartDate}
+                            onChange={(e) => setNewRecurringStartDate(e.target.value)}
+                            min={milestone.start_date}
+                            max={milestone.end_date}
+                            placeholder="Начало"
+                            className="date-input"
+                          />
+                          <Input
+                            type="date"
+                            value={newRecurringEndDate}
+                            onChange={(e) => setNewRecurringEndDate(e.target.value)}
+                            min={milestone.start_date}
+                            max={milestone.end_date}
+                            placeholder="Окончание"
+                            className="date-input"
+                          />
+                        </div>
+                        <p className="mt-1 text-xs text-app-textMuted">
+                          Если не указано, используется период вехи
+                        </p>
+                      </div>
                       <div className="flex gap-2 justify-end">
                         <Button variant="secondary" onClick={() => setShowAddRecurring(false)}>
                           Отмена
@@ -712,6 +748,33 @@ export default function MilestoneDetailPage() {
                             label="Целевой процент"
                             currentProgress={action.current_percent}
                           />
+                          <div>
+                            <label className="block text-sm font-semibold text-app-text mb-2">
+                              <Calendar size={14} className="inline mr-1" />
+                              Период действия
+                            </label>
+                            <div className="grid grid-cols-2 gap-3">
+                              <Input
+                                type="date"
+                                value={editRecurringStartDate}
+                                onChange={(e) => setEditRecurringStartDate(e.target.value)}
+                                min={milestone.start_date}
+                                max={milestone.end_date}
+                                className="date-input"
+                              />
+                              <Input
+                                type="date"
+                                value={editRecurringEndDate}
+                                onChange={(e) => setEditRecurringEndDate(e.target.value)}
+                                min={milestone.start_date}
+                                max={milestone.end_date}
+                                className="date-input"
+                              />
+                            </div>
+                            <p className="mt-1 text-xs text-app-textMuted">
+                              Если не указано, используется период вехи
+                            </p>
+                          </div>
                           <div className="flex gap-2 justify-end">
                             <Button
                               variant="secondary"
@@ -743,12 +806,20 @@ export default function MilestoneDetailPage() {
                                 <p className={`font-semibold ${action.is_target_reached ? 'text-app-textMuted' : 'text-app-text'}`}>
                                   {action.title}
                                 </p>
-                                <p className="text-sm text-app-textMuted">{formatWeekdays(action.weekdays)}</p>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <p className="text-sm text-app-textMuted">{formatWeekdays(action.weekdays)}</p>
+                                  {action.start_date || action.end_date ? (
+                                    <span className="action-period-badge">
+                                      <Calendar size={11} />
+                                      {formatDateShort(action.effective_start_date || milestone.start_date)} — {formatDateShort(action.effective_end_date || milestone.end_date)}
+                                    </span>
+                                  ) : null}
+                                </div>
                               </div>
                             </div>
                             <div className="flex items-center gap-2 flex-shrink-0">
                               <button
-                                onClick={() => startEditRecurring(action.id, action.title, action.weekdays, action.target_percent ?? 80)}
+                                onClick={() => startEditRecurring(action)}
                                 className="w-8 h-8 rounded-full hover:bg-app-accentSoft flex items-center justify-center transition-colors"
                                 title="Редактировать"
                               >
@@ -982,7 +1053,6 @@ export default function MilestoneDetailPage() {
           title: milestone.title,
           start_date: milestone.start_date,
           end_date: milestone.end_date,
-          completion_percent: milestone.completion_percent,
         }}
       />
 

@@ -8,13 +8,14 @@ interface MilestoneUpdateData {
   title?: string;
   start_date?: string;
   end_date?: string;
-  completion_percent?: number;
 }
 
 interface RecurringActionUpdateData {
   title?: string;
   weekdays?: number[];
   target_percent?: number;
+  start_date?: string | null;
+  end_date?: string | null;
 }
 
 interface OneTimeActionUpdateData {
