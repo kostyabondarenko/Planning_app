@@ -52,14 +52,13 @@ def calculate_recurring_action_progress(
     Рассчитать прогресс регулярного действия.
 
     Возвращает:
-    - expected_count: сколько раз должно быть выполнено (до сегодня)
+    - expected_count: сколько раз должно быть выполнено (за весь период)
     - completed_count: сколько раз выполнено
     - current_percent: текущий процент (completed/expected * 100)
     - is_target_reached: current_percent >= target_percent
     """
     total_expected = 0
-    today = date.today()
-    upper_bound = min(end_date, today)
+    upper_bound = end_date
     current = start_date
     while current <= upper_bound:
         if (current.weekday() + 1) in action.weekdays:
@@ -80,6 +79,7 @@ def calculate_recurring_action_progress(
         "completed_count": completed_count,
         "current_percent": round(current_percent, 1),
         "is_target_reached": current_percent >= action.target_percent,
+        "is_period_over": end_date <= date.today(),
     }
 
 
@@ -108,7 +108,8 @@ def calculate_milestone_progress(milestone: models.Milestone) -> dict:
         )
         total_weight += 1
         total_progress += progress_info["current_percent"]
-        if progress_info["is_target_reached"]:
+        # Действие считается завершённым только если период закончился И target достигнут
+        if progress_info["is_period_over"] and progress_info["is_target_reached"]:
             actions_completed += 1
 
     # Однократные действия (только активные)
@@ -160,8 +161,39 @@ def recalculate_action_completion(action: models.RecurringAction) -> dict:
     progress_info = calculate_recurring_action_progress(
         action, effective_start, effective_end
     )
-    action.is_completed = progress_info["is_target_reached"]
+    # is_completed = True только когда период завершён И цель достигнута
+    today = date.today()
+    action.is_completed = (effective_end <= today) and progress_info["is_target_reached"]
     return progress_info
+
+
+def _recalculate_expired_actions(db: Session, milestones: list) -> bool:
+    """
+    Пересчитать is_completed для всех recurring actions с истёкшим периодом.
+
+    Оптимизация: пересчитываем только действия, у которых
+    effective_end <= today AND is_completed == False (потенциально незакрытые).
+
+    Возвращает True, если были изменения в БД.
+    """
+    today = date.today()
+    changed = False
+
+    for milestone in milestones:
+        for action in milestone.recurring_actions:
+            if action.is_deleted:
+                continue
+            # Пересчитываем только потенциально незакрытые действия с истёкшим периодом
+            effective_end = action.end_date or milestone.end_date
+            if effective_end <= today and not action.is_completed:
+                recalculate_action_completion(action)
+                if action.is_completed:
+                    changed = True
+
+    if changed:
+        db.flush()
+
+    return changed
 
 
 def _action_to_response(
@@ -300,6 +332,14 @@ def list_goals(
 
     goals = query.all()
 
+    # Автопересчёт is_completed для действий с истёкшим периодом
+    any_changed = False
+    for goal in goals:
+        if _recalculate_expired_actions(db, goal.milestones):
+            any_changed = True
+    if any_changed:
+        db.commit()
+
     return [_goal_to_response(goal, include_archived_milestones=include_archived) for goal in goals]
 
 
@@ -311,6 +351,8 @@ def get_goal(
 ):
     """Получить цель по ID."""
     goal = get_goal_or_404(db, goal_id, current_user.id)
+    if _recalculate_expired_actions(db, goal.milestones):
+        db.commit()
     return _goal_to_response(goal)
 
 
@@ -487,6 +529,8 @@ def list_milestones(
 ):
     """Получить список вех цели."""
     goal = get_goal_or_404(db, goal_id, current_user.id)
+    if _recalculate_expired_actions(db, goal.milestones):
+        db.commit()
     return [_milestone_to_response(ms) for ms in goal.milestones]
 
 
@@ -498,6 +542,8 @@ def get_milestone(
 ):
     """Получить веху по ID."""
     milestone = get_milestone_or_404(db, milestone_id, current_user.id)
+    if _recalculate_expired_actions(db, [milestone]):
+        db.commit()
     return _milestone_to_response(milestone)
 
 
@@ -994,6 +1040,8 @@ def get_goal_progress(
 ):
     """Получить детальный прогресс цели."""
     goal = get_goal_or_404(db, goal_id, current_user.id)
+    if _recalculate_expired_actions(db, goal.milestones):
+        db.commit()
 
     milestones_progress = []
     for ms in goal.milestones:

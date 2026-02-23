@@ -98,9 +98,15 @@ current_percent = (completed_count / expected_count) * 100
 is_target_reached = current_percent >= target_percent
 ```
 
-- `expected_count` — кол-во дней, когда действие должно было быть выполнено (от effective_start до min(effective_end, today)), с учётом weekdays
+- `expected_count` — общее кол-во дней за **весь период** действия (от effective_start до effective_end), с учётом weekdays. Считается за весь период, а не только до сегодня, чтобы прогресс рос постепенно
 - `completed_count` — кол-во логов с `completed=True`
 - При `expected_count == 0` → `current_percent = 0.0` (не NaN)
+
+**Пример:** период 01.02–10.02, каждый день, target 80%:
+- `expected_count` = 10 (все дни периода)
+- Нужно 8 выполнений из 10 для достижения цели (80%)
+- 01.02: 1 выполнение → 1/10 = 10%, `is_target_reached = False`
+- 08.02: 8 выполнений → 8/10 = 80%, `is_target_reached = True`
 
 ### Вехи (Milestone)
 Веха закрыта когда **все** её действия достигли своего `target_percent`:
@@ -115,7 +121,15 @@ progress = avg(milestone.progress for milestone in goal.milestones)
 ```
 
 Все значения вычисляются динамически при каждом запросе.
-`is_completed` у RecurringAction пересчитывается автоматически при логировании выполнения.
+
+### Завершение регулярных действий (is_completed)
+`is_completed` устанавливается в `True` только после окончания периода действия (`effective_end <= today`) при условии `current_percent >= target_percent`. До окончания периода `is_completed` всегда `False`, даже если текущий промежуточный процент высокий.
+
+`is_target_reached` — промежуточный индикатор для UI, может быть `True` в середине периода. Не путать с `is_completed`.
+
+Автопересчёт `is_completed` происходит:
+- При логировании выполнения (`POST /log`, `PUT /complete`)
+- При GET-запросах к целям/вехам (для действий с истёкшим периодом и `is_completed=False`)
 
 ### Обновление прогресса в реальном времени
 При отметке задачи выполненной (`PUT /api/tasks/{id}/complete`) бэкенд возвращает обновлённые поля прогресса (`current_percent`, `completed_count`, `expected_count`, `is_target_reached`), которые фронтенд применяет к локальному стейту без перезагрузки.

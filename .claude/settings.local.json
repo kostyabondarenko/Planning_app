@@ -40,7 +40,19 @@
       "Bash(git add:*)",
       "Bash(python -m alembic:*)",
       "Bash(ls:*)",
-      "Bash(./venv/Scripts/python.exe:*)"
+      "Bash(./venv/Scripts/python.exe:*)",
+      "Bash(\"C:/Работа/Развитие/LLM/Planning/Planning_app/backend/venv/Scripts/python.exe\":*)",
+      "Bash(cmd.exe:*)",
+      "Bash(export:*)",
+      "Bash(cd \"C:/Работа/Развитие/LLM/Planning/Planning_app/backend\" && \"C:/Работа/Развитие/LLM/Planning/Planning_app/backend/venv/Scripts/python.exe\" -m pytest tests/test_action_target_percent.py -v 2>&1)",
+      "Bash(cd \"C:/Работа/Развитие/LLM/Planning/Planning_app/backend\" && \"C:/Работа/Развитие/LLM/Planning/Planning_app/backend/venv/Scripts/python.exe\" -m pytest tests/ -v 2>&1)",
+      "Bash(cd \"C:\\\\Работа\\\\Развитие\\\\LLM\\\\Planning\\\\Planning_app\\\\backend\" && venv\\\\Scripts\\\\python.exe -m pytest tests/ -v 2>&1)",
+      "Bash(cd \"C:\\\\\\\\Работа\\\\\\\\Развитие\\\\\\\\LLM\\\\\\\\Planning\\\\\\\\Planning_app\\\\\\\\backend\" && venv/Scripts/pytest.exe tests/test_action_target_percent.py -v 2>&1)",
+      "Bash(cd \"C:\\\\\\\\Работа\\\\\\\\Развитие\\\\\\\\LLM\\\\\\\\Planning\\\\\\\\Planning_app\\\\\\\\backend\" && PYTHONPATH=. venv/Scripts/pytest.exe tests/test_action_target_percent.py -v 2>&1)",
+      "Bash(cd \"C:\\\\\\\\Работа\\\\\\\\Развитие\\\\\\\\LLM\\\\\\\\Planning\\\\\\\\Planning_app\\\\\\\\backend\" && set PYTHONPATH=. && venv\\\\\\\\Scripts\\\\\\\\pytest.exe tests\\\\\\\\test_action_target_percent.py -v 2>&1)",
+      "Bash(export PYTHONPATH=\"C:/Работа/Развитие/LLM/Planning/Planning_app/backend\" && \"C:/Работа/Развитие/LLM/Planning/Planning_app/backend/venv/Scripts/pytest.exe\" \"C:/Работа/Развитие/LLM/Planning/Planning_app/backend/tests/test_action_target_percent.py\" -v 2>&1)",
+      "Bash(tail:*)",
+      "Bash(git:*)"
     ]
   }
 }

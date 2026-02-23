@@ -74,7 +74,7 @@ const TaskCard = React.memo(function TaskCard({ task, onToggleComplete, isOverla
         <div className="flex items-center gap-2">
           <span className="task-milestone-badge">{task.milestone_title}</span>
           {hasProgress && (
-            <span className={`task-progress-badge ${isTargetReached ? 'task-progress-badge--done' : ''}`}>
+            <span className={`task-progress-badge ${isTargetReached ? 'task-progress-badge--on-track' : ''}`}>
               {Math.round(task.current_percent!)}&#47;{task.target_percent}%
             </span>
           )}
@@ -84,7 +84,7 @@ const TaskCard = React.memo(function TaskCard({ task, onToggleComplete, isOverla
         {hasProgress && (
           <div className="task-card-progress-track">
             <div
-              className={`task-card-progress-fill ${isTargetReached ? 'task-card-progress-fill--done' : ''}`}
+              className={`task-card-progress-fill ${isTargetReached ? 'task-card-progress-fill--on-track' : ''}`}
               style={{ width: `${Math.min(task.current_percent!, 100)}%` }}
             />
             <div
@@ -108,8 +108,8 @@ const TaskCard = React.memo(function TaskCard({ task, onToggleComplete, isOverla
             </div>
           )}
           {isTargetReached && (
-            <div className="task-card-tooltip-row task-card-tooltip-success">
-              Цель достигнута!
+            <div className="task-card-tooltip-row task-card-tooltip-on-track">
+              Прогресс ≥ цели (промежуточный)
             </div>
           )}
         </div>

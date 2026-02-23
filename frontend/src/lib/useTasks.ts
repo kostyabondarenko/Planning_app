@@ -60,18 +60,30 @@ export function useTasks(startDate: string, endDate: string) {
 
         // Обновляем локальный стейт (включая поля прогресса из ответа)
         setTasks((prev) =>
-          prev.map((t) =>
-            t.id === task.id
-              ? {
-                  ...t,
-                  completed: !t.completed,
-                  current_percent: result.current_percent ?? t.current_percent,
-                  completed_count: result.completed_count ?? t.completed_count,
-                  expected_count: result.expected_count ?? t.expected_count,
-                  is_target_reached: result.is_target_reached ?? t.is_target_reached,
-                }
-              : t
-          )
+          prev.map((t) => {
+            // Для конкретного дня — переключить чекбокс + обновить прогресс
+            if (t.id === task.id) {
+              return {
+                ...t,
+                completed: !t.completed,
+                current_percent: result.current_percent ?? t.current_percent,
+                completed_count: result.completed_count ?? t.completed_count,
+                expected_count: result.expected_count ?? t.expected_count,
+                is_target_reached: result.is_target_reached ?? t.is_target_reached,
+              };
+            }
+            // Для других дней того же действия — обновить только прогресс
+            if (t.type === 'recurring' && t.original_id === task.original_id) {
+              return {
+                ...t,
+                current_percent: result.current_percent ?? t.current_percent,
+                completed_count: result.completed_count ?? t.completed_count,
+                expected_count: result.expected_count ?? t.expected_count,
+                is_target_reached: result.is_target_reached ?? t.is_target_reached,
+              };
+            }
+            return t;
+          })
         );
 
         return result;

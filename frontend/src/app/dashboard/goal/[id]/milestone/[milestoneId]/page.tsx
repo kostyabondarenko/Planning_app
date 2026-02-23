@@ -842,7 +842,7 @@ export default function MilestoneDetailPage() {
                           <ActionProgressBar
                             currentPercent={action.current_percent}
                             targetPercent={action.target_percent ?? 80}
-                            isCompleted={action.is_target_reached}
+                            isCompleted={action.is_completed}
                           />
                         </div>
                       )}

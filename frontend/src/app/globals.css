@@ -885,6 +885,10 @@
     color: var(--accent-success);
   }
 
+  .details-task-progress-numbers--on-track {
+    color: var(--accent-primary);
+  }
+
   .details-task-progress-counts {
     font-size: 10px;
     color: var(--text-tertiary);
@@ -911,6 +915,10 @@
 
   .details-task-progress-fill--done {
     background: var(--accent-success);
+  }
+
+  .details-task-progress-fill--on-track {
+    background: var(--accent-primary);
   }
 
   .details-task-progress-marker {
@@ -1866,6 +1874,13 @@
     border-color: rgba(52, 211, 153, 0.3);
   }
 
+  /* Промежуточное состояние: прогресс ≥ цели, но период ещё не завершён */
+  .task-progress-badge--on-track {
+    color: var(--accent-primary);
+    background: color-mix(in srgb, var(--accent-primary) 10%, transparent);
+    border-color: color-mix(in srgb, var(--accent-primary) 30%, transparent);
+  }
+
   /* Task Card Mini Progress Bar */
   .task-card-progress-track {
     position: relative;
@@ -1889,6 +1904,11 @@
 
   .task-card-progress-fill--done {
     background: var(--accent-success);
+  }
+
+  /* Промежуточное состояние: прогресс ≥ цели, период ещё идёт */
+  .task-card-progress-fill--on-track {
+    background: var(--accent-primary);
   }
 
   .task-card-progress-marker {
@@ -1934,6 +1954,12 @@
   .task-card-tooltip-success {
     color: var(--accent-success);
     font-weight: 500;
+  }
+
+  .task-card-tooltip-on-track {
+    color: var(--accent-primary);
+    font-weight: 500;
+    font-style: italic;
   }
 
   /* Add Task Button */

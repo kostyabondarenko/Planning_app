@@ -52,7 +52,7 @@ function TaskProgressInfo({ task }: { task: CalendarTaskView }) {
   return (
     <div className="details-task-progress">
       <div className="details-task-progress-info">
-        <span className={`details-task-progress-numbers ${isReached ? 'details-task-progress-numbers--done' : ''}`}>
+        <span className={`details-task-progress-numbers ${isReached ? 'details-task-progress-numbers--on-track' : ''}`}>
           {current}% / {target}%
         </span>
         {task.completed_count != null && task.expected_count != null && (
@@ -63,7 +63,7 @@ function TaskProgressInfo({ task }: { task: CalendarTaskView }) {
       </div>
       <div className="details-task-progress-track">
         <div
-          className={`details-task-progress-fill ${isReached ? 'details-task-progress-fill--done' : ''}`}
+          className={`details-task-progress-fill ${isReached ? 'details-task-progress-fill--on-track' : ''}`}
           style={{ width: `${Math.min(current, 100)}%` }}
         />
         <div
