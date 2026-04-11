@@ -26,3 +26,12 @@ Thumbs.db
 
 # Backups
 backup/
+
+# Local databases
+*.db
+
+# TypeScript build artifacts
+*.tsbuildinfo
+
+# Windows stray redirect files
+nul
