@@ -38,6 +38,8 @@ export function useGoal(goalId: number | string): UseGoalReturn {
       const data = await api.get<GoalV2>(`/api/v2/goals/${goalId}`);
       setGoal(data);
     } catch (err) {
+      // Если токен истёк — redirect уже произошёл в api.ts
+      if (err instanceof Error && err.message === 'AUTH_EXPIRED') return;
       setError(err instanceof Error ? err.message : 'Ошибка загрузки цели');
       setGoal(null);
     } finally {

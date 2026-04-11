@@ -11,13 +11,16 @@
 ### Backend
 ```
 backend/app/
-├── main.py       # Точка входа, CORS
+├── main.py       # Точка входа, CORS, SessionMiddleware
 ├── database.py   # Подключение к PostgreSQL
 ├── models.py     # ORM модели
 ├── schemas.py    # Pydantic схемы
 ├── auth.py       # JWT аутентификация
+├── oauth.py      # Google OAuth 2.0 конфигурация (authlib)
 └── routers/      # API эндпоинты
+    ├── auth.py      # Регистрация, вход, Google OAuth, профиль
     ├── goals_v2.py  # Цели, вехи, действия
+    ├── calendar.py  # Календарь, дедлайны
     └── tasks.py     # Задачи (Kanban "Ближайшие дни")
 ```
 
@@ -33,8 +36,13 @@ frontend/src/
 │       ├── daily/            # Задачи на день (Kanban)
 │       └── calendar/         # Календарь
 ├── components/               # UI компоненты
+│   └── calendar/
+│       ├── CalendarView.tsx      # Основной компонент календаря
+│       ├── DeadlineTasksList.tsx  # Список задач с приближающимся дедлайном
+│       └── TaskDateEditModal.tsx  # Модалка редактирования дат задачи
 └── lib/                      # Хуки и утилиты
     ├── useTasks.ts           # Хук для задач Kanban
+    ├── useDeadlineTasks.ts   # Хук для задач с приближающимся дедлайном
     └── useMilestone.ts       # Хук для данных вехи
 ```
 
@@ -42,6 +50,12 @@ frontend/src/
 
 ```
 User
+├── id, email, hashed_password (nullable для Google-only)
+├── display_name, avatar_url — профиль из Google
+├── role: "admin" | "user" — первый зарегистрированный пользователь — admin
+├── auth_provider: "local" | "google" | "both"
+├── google_id (unique) — идентификатор Google-аккаунта
+├── created_at
 ├── Goal (1:N)
 │   └── Milestone (1:N) — вехи (параллельные вехи разрешены)
 │       ├── RecurringAction (1:N) — регулярные действия
@@ -73,20 +87,31 @@ effective_end = action.end_date or milestone.end_date
 - **close_as_is** — закрыть с текущим прогрессом
 - **extend** — продлить срок (указать `new_end_date`)
 
+### Frontend — OAuth callback
+```
+frontend/src/app/auth/google/callback/page.tsx
+```
+Получает JWT-токен из URL после Google OAuth redirect, сохраняет в localStorage, перенаправляет на dashboard.
+
 ## User Flow
 
-1. **Регистрация/Вход** → JWT токен
+1. **Регистрация/Вход** → JWT токен (email+пароль или Google OAuth)
 2. **Dashboard** → Создание целей с вехами и действиями
 3. **Страница цели** → Управление вехами, прогресс
 4. **Ближайшие дни (Kanban)** → Задачи на неделю, отметка выполнения
-5. **Календарь** → Обзор целей и вех на таймлайне
+5. **Календарь** → Обзор задач с приближающимися дедлайнами, редактирование дат
 
 ## Безопасность
 
-- JWT-аутентификация
+- JWT-аутентификация (email+пароль и Google OAuth 2.0)
+- **Google OAuth flow:** authlib обрабатывает state-параметр, PKCE, обмен code на token
+- **Объединение аккаунтов:** если email из Google совпадает с существующим — аккаунты объединяются (auth_provider → "both")
+- **Роли:** admin / user — первый зарегистрированный пользователь получает роль admin
 - Изоляция данных по user_id
 - 404 вместо 403 для безопасности
-- Хеширование паролей (bcrypt)
+- Хеширование паролей (bcrypt), hashed_password nullable для Google-only пользователей
+- Глобальная обработка 401: при истечении JWT-токена фронтенд автоматически очищает стейлый токен из localStorage и перенаправляет на `/login` с сохранением текущего маршрута в параметре `redirect`
+- После повторного входа пользователь возвращается на страницу, с которой был перенаправлен (защита от open redirect — только относительные пути)
 
 ## Расчёт прогресса
 

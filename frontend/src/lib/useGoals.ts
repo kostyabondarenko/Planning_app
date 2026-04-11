@@ -28,11 +28,9 @@ export function useGoals(): UseGoalsReturn {
       const data = await api.get<GoalV2[]>('/api/v2/goals/');
       setGoals(data);
     } catch (err) {
+      // Если токен истёк — redirect уже произошёл в api.ts
+      if (err instanceof Error && err.message === 'AUTH_EXPIRED') return;
       setError(err instanceof Error ? err.message : 'Ошибка загрузки целей');
-      // Если ошибка авторизации - очищаем список
-      if (err instanceof Error && err.message.includes('401')) {
-        setGoals([]);
-      }
     } finally {
       setIsLoading(false);
     }

@@ -33,6 +33,16 @@ async function apiFetch<T>(
     headers,
   });
 
+  // Глобальный перехват 401 — очистка токена и redirect на логин
+  if (response.status === 401) {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('token');
+      const currentPath = window.location.pathname;
+      window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
+    }
+    throw new Error('AUTH_EXPIRED');
+  }
+
   if (!response.ok) {
     const error: ApiError = await response.json().catch(() => ({ 
       detail: 'Ошибка сервера' 

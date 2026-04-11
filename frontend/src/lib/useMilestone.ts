@@ -60,6 +60,8 @@ export function useMilestone(milestoneId: number | string, onProgressChange?: ()
       const data = await api.get<Milestone>(`/api/v2/goals/milestones/${milestoneId}`);
       setMilestone(data);
     } catch (err) {
+      // Если токен истёк — redirect уже произошёл в api.ts
+      if (err instanceof Error && err.message === 'AUTH_EXPIRED') return;
       setError(err instanceof Error ? err.message : 'Ошибка загрузки вехи');
       setMilestone(null);
     } finally {

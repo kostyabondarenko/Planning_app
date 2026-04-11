@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Target, Calendar, Columns3, Sun, Moon, Monitor } from 'lucide-react';
+import { Target, Calendar, Columns3, Sun, Moon, Monitor, LogOut } from 'lucide-react';
 import { useTheme } from '@/lib/ThemeProvider';
+import { useUser } from '@/lib/useUser';
 import { ToastContainer } from '@/components/kanban/Toast';
 
 export default function DashboardLayout({
@@ -12,6 +13,12 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const { theme, setTheme } = useTheme();
+  const { user } = useUser();
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    window.location.href = '/login';
+  };
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
@@ -70,35 +77,116 @@ export default function DashboardLayout({
               </NavLink>
             </div>
 
-            {/* Theme Toggle */}
-            <div
-              className="flex items-center gap-1 p-1 rounded-full"
-              style={{
-                background: 'var(--glass-bg)',
-                border: '1px solid var(--glass-border)',
-              }}
-            >
-              <ThemeButton
-                active={theme === 'light'}
-                onClick={() => setTheme('light')}
-                title="Светлая тема"
+            {/* Right section: Theme + Profile */}
+            <div className="flex items-center gap-2 sm:gap-3">
+              {/* Theme Toggle */}
+              <div
+                className="flex items-center gap-1 p-1 rounded-full"
+                style={{
+                  background: 'var(--glass-bg)',
+                  border: '1px solid var(--glass-border)',
+                }}
               >
-                <Sun size={16} />
-              </ThemeButton>
-              <ThemeButton
-                active={theme === 'auto'}
-                onClick={() => setTheme('auto')}
-                title="Авто"
-              >
-                <Monitor size={16} />
-              </ThemeButton>
-              <ThemeButton
-                active={theme === 'dark'}
-                onClick={() => setTheme('dark')}
-                title="Тёмная тема"
-              >
-                <Moon size={16} />
-              </ThemeButton>
+                <ThemeButton
+                  active={theme === 'light'}
+                  onClick={() => setTheme('light')}
+                  title="Светлая тема"
+                >
+                  <Sun size={16} />
+                </ThemeButton>
+                <ThemeButton
+                  active={theme === 'auto'}
+                  onClick={() => setTheme('auto')}
+                  title="Авто"
+                >
+                  <Monitor size={16} />
+                </ThemeButton>
+                <ThemeButton
+                  active={theme === 'dark'}
+                  onClick={() => setTheme('dark')}
+                  title="Тёмная тема"
+                >
+                  <Moon size={16} />
+                </ThemeButton>
+              </div>
+
+              {/* User Profile */}
+              {user && (
+                <div className="flex items-center gap-2">
+                  <div
+                    className="flex items-center gap-2 px-2 sm:px-3 py-1.5 rounded-full"
+                    style={{
+                      background: 'var(--glass-bg)',
+                      border: '1px solid var(--glass-border)',
+                    }}
+                  >
+                    {/* Avatar */}
+                    {user.avatar_url ? (
+                      <img
+                        src={user.avatar_url}
+                        alt={user.display_name || user.email}
+                        className="rounded-full object-cover"
+                        style={{ width: 28, height: 28 }}
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <div
+                        className="rounded-full flex items-center justify-center font-bold text-xs"
+                        style={{
+                          width: 28,
+                          height: 28,
+                          background: 'var(--gradient-warm)',
+                          color: 'var(--text-inverse)',
+                        }}
+                      >
+                        {(user.display_name || user.email)[0].toUpperCase()}
+                      </div>
+                    )}
+
+                    {/* Name + Admin badge */}
+                    <div className="hidden sm:flex items-center gap-1.5">
+                      <span
+                        className="text-sm font-semibold max-w-[120px] truncate"
+                        style={{ color: 'var(--text-primary)' }}
+                      >
+                        {user.display_name || user.email}
+                      </span>
+                      {user.role === 'admin' && (
+                        <span
+                          className="text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider"
+                          style={{
+                            background: 'color-mix(in srgb, var(--accent-primary) 15%, transparent)',
+                            color: 'var(--accent-primary)',
+                          }}
+                        >
+                          Admin
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Logout */}
+                  <button
+                    onClick={handleLogout}
+                    title="Выйти"
+                    className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer"
+                    style={{
+                      color: 'var(--text-tertiary)',
+                      transition: 'var(--transition-fast)',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = 'var(--accent-error)';
+                      e.currentTarget.style.background = 'color-mix(in srgb, var(--accent-error) 10%, transparent)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = 'var(--text-tertiary)';
+                      e.currentTarget.style.background = 'transparent';
+                    }}
+                  >
+                    <LogOut size={16} />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

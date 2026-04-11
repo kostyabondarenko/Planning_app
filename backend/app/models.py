@@ -10,7 +10,13 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     email: Mapped[str] = mapped_column(unique=True, index=True, nullable=False)
-    hashed_password: Mapped[str] = mapped_column(nullable=False)
+    hashed_password: Mapped[Optional[str]] = mapped_column(nullable=True)  # nullable для Google-only
+    display_name: Mapped[Optional[str]] = mapped_column(nullable=True)
+    avatar_url: Mapped[Optional[str]] = mapped_column(nullable=True)
+    role: Mapped[str] = mapped_column(default="user")  # "admin" | "user"
+    auth_provider: Mapped[str] = mapped_column(default="local")  # "local" | "google" | "both"
+    google_id: Mapped[Optional[str]] = mapped_column(unique=True, nullable=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
 
     # Связь с целями: один пользователь может иметь много целей
     goals: Mapped[List["Goal"]] = relationship(

@@ -13,7 +13,16 @@ class UserCreate(UserBase):
 
 class UserResponse(UserBase):
     id: int
+    display_name: Optional[str] = None
+    avatar_url: Optional[str] = None
+    role: str = "user"
+    auth_provider: str = "local"
     model_config = ConfigDict(from_attributes=True)
+
+
+class UserProfileUpdate(BaseModel):
+    display_name: Optional[str] = None
+    avatar_url: Optional[str] = None
 
 
 class Token(BaseModel):
@@ -514,3 +523,51 @@ class CalendarTimelineResponse(BaseModel):
     """Ответ GET /api/calendar/timeline."""
 
     goals: List[TimelineGoal]
+
+
+# ============================================
+# Схемы для "Приближающиеся дедлайны" (012-calendar-deadline-tasks)
+# ============================================
+
+
+class DeadlineTaskView(BaseModel):
+    """Задача с приближающимся дедлайном."""
+
+    id: int
+    title: str
+    type: str  # "recurring" | "one-time"
+    deadline: date  # effective_end для recurring, deadline для one-time
+    days_left: int  # (deadline - today).days
+    # Для recurring:
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    effective_start_date: Optional[date] = None
+    effective_end_date: Optional[date] = None
+    weekdays: Optional[List[int]] = None
+    target_percent: Optional[int] = None
+    current_percent: Optional[float] = None
+    # Общее:
+    goal_id: int
+    goal_title: str
+    goal_color: str
+    milestone_id: int
+
+
+class DeadlineMilestoneGroup(BaseModel):
+    """Группа задач по вехе."""
+
+    milestone_id: int
+    milestone_title: str
+    goal_id: int
+    goal_title: str
+    goal_color: str
+    milestone_end_date: date
+    tasks: List[DeadlineTaskView]
+
+
+class UpcomingDeadlinesResponse(BaseModel):
+    """Ответ GET /api/calendar/upcoming-deadlines."""
+
+    days_ahead: int
+    total_tasks: int
+    milestones: List[DeadlineMilestoneGroup]

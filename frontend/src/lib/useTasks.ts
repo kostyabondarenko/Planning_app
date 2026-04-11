@@ -33,6 +33,8 @@ export function useTasks(startDate: string, endDate: string) {
       );
       setTasks(data.tasks);
     } catch (err) {
+      // Если токен истёк — redirect уже произошёл в api.ts
+      if (err instanceof Error && err.message === 'AUTH_EXPIRED') return;
       setError(err instanceof Error ? err.message : 'Ошибка загрузки задач');
     } finally {
       setIsLoading(false);
@@ -88,6 +90,8 @@ export function useTasks(startDate: string, endDate: string) {
 
         return result;
       } catch (err) {
+        // Если токен истёк — redirect уже произошёл в api.ts
+        if (err instanceof Error && err.message === 'AUTH_EXPIRED') return null;
         setError(err instanceof Error ? err.message : 'Ошибка обновления задачи');
         return null;
       }
@@ -123,6 +127,8 @@ export function useTasks(startDate: string, endDate: string) {
         await api.put(`/api/tasks/${task.original_id}/reschedule`, body);
         return true;
       } catch (err) {
+        // Если токен истёк — redirect уже произошёл в api.ts
+        if (err instanceof Error && err.message === 'AUTH_EXPIRED') return false;
         // Откат при ошибке
         moveTask(task.id, newDate, oldDate);
         setError(err instanceof Error ? err.message : 'Ошибка переноса задачи');

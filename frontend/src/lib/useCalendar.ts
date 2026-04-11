@@ -47,6 +47,8 @@ export function useCalendar(
       const data = await api.get<CalendarMonthResponse>(endpoint);
       setDays(data.days);
     } catch (err) {
+      // Если токен истёк — redirect уже произошёл в api.ts
+      if (err instanceof Error && err.message === 'AUTH_EXPIRED') return;
       setError(err instanceof Error ? err.message : 'Ошибка загрузки календаря');
     } finally {
       setIsLoading(false);

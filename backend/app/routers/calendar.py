@@ -386,3 +386,146 @@ def get_calendar_timeline(
         )
 
     return schemas.CalendarTimelineResponse(goals=timeline_goals)
+
+
+@router.get("/upcoming-deadlines", response_model=schemas.UpcomingDeadlinesResponse)
+def get_upcoming_deadlines(
+    days_ahead: int = Query(14, ge=1, le=90, description="Порог: задачи до дедлайна ≤ N дней"),
+    goal_id: Optional[int] = Query(None, description="Фильтр по одной цели (обратная совместимость)"),
+    goal_ids: Optional[str] = Query(None, description="Фильтр по нескольким целям (через запятую)"),
+    include_archived: bool = Query(False, description="Включить архивные цели"),
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    """Получить задачи с приближающимся дедлайном, сгруппированные по вехам."""
+    today = date.today()
+
+    all_goals = _get_user_goals(db, current_user.id, include_archived=include_archived)
+    color_map = _build_goal_color_map(all_goals)
+
+    filter_ids = _parse_goal_ids(goal_ids, goal_id)
+    if filter_ids is not None:
+        goals = [g for g in all_goals if g.id in filter_ids]
+    else:
+        goals = all_goals
+
+    # milestone_id -> { milestone_data, tasks }
+    milestone_groups: dict[int, dict] = {}
+
+    for goal in goals:
+        goal_color = color_map.get(goal.id, "#888888")
+
+        for milestone in goal.milestones:
+            if milestone.is_archived:
+                continue
+
+            tasks_in_milestone: List[schemas.DeadlineTaskView] = []
+
+            # Регулярные действия
+            for action in milestone.recurring_actions:
+                if action.is_completed or action.is_deleted:
+                    continue
+                effective_end = action.end_date or milestone.end_date
+                if effective_end <= today:
+                    continue
+                days_left = (effective_end - today).days
+                if days_left > days_ahead:
+                    continue
+
+                effective_start = action.start_date or milestone.start_date
+                progress_info = calculate_recurring_action_progress(
+                    action, milestone.start_date, milestone.end_date
+                )
+
+                tasks_in_milestone.append(
+                    schemas.DeadlineTaskView(
+                        id=action.id,
+                        title=action.title,
+                        type="recurring",
+                        deadline=effective_end,
+                        days_left=days_left,
+                        start_date=action.start_date,
+                        end_date=action.end_date,
+                        effective_start_date=effective_start,
+                        effective_end_date=effective_end,
+                        weekdays=action.weekdays,
+                        target_percent=action.target_percent,
+                        current_percent=progress_info["current_percent"],
+                        goal_id=goal.id,
+                        goal_title=goal.title,
+                        goal_color=goal_color,
+                        milestone_id=milestone.id,
+                    )
+                )
+
+            # Однократные действия
+            for action in milestone.one_time_actions:
+                if action.completed or action.is_deleted:
+                    continue
+                if action.deadline <= today:
+                    continue
+                days_left = (action.deadline - today).days
+                if days_left > days_ahead:
+                    continue
+
+                tasks_in_milestone.append(
+                    schemas.DeadlineTaskView(
+                        id=action.id,
+                        title=action.title,
+                        type="one-time",
+                        deadline=action.deadline,
+                        days_left=days_left,
+                        goal_id=goal.id,
+                        goal_title=goal.title,
+                        goal_color=goal_color,
+                        milestone_id=milestone.id,
+                    )
+                )
+
+            if tasks_in_milestone:
+                # Сортируем задачи внутри вехи по дедлайну (ближайшие первые)
+                tasks_in_milestone.sort(key=lambda t: t.deadline)
+
+                if milestone.id in milestone_groups:
+                    # Если веха уже встречалась (не должно быть, но на всякий случай)
+                    milestone_groups[milestone.id]["tasks"].extend(tasks_in_milestone)
+                    milestone_groups[milestone.id]["tasks"].sort(key=lambda t: t.deadline)
+                else:
+                    milestone_groups[milestone.id] = {
+                        "milestone": milestone,
+                        "goal": goal,
+                        "goal_color": goal_color,
+                        "tasks": tasks_in_milestone,
+                    }
+
+    # Формируем ответ: сортируем вехи по ближайшему дедлайну задач
+    sorted_groups = sorted(
+        milestone_groups.values(),
+        key=lambda g: g["tasks"][0].deadline,
+    )
+
+    milestones_response: List[schemas.DeadlineMilestoneGroup] = []
+    total_tasks = 0
+
+    for group in sorted_groups:
+        ms = group["milestone"]
+        tasks = group["tasks"]
+        total_tasks += len(tasks)
+
+        milestones_response.append(
+            schemas.DeadlineMilestoneGroup(
+                milestone_id=ms.id,
+                milestone_title=ms.title,
+                goal_id=group["goal"].id,
+                goal_title=group["goal"].title,
+                goal_color=group["goal_color"],
+                milestone_end_date=ms.end_date,
+                tasks=tasks,
+            )
+        )
+
+    return schemas.UpcomingDeadlinesResponse(
+        days_ahead=days_ahead,
+        total_tasks=total_tasks,
+        milestones=milestones_response,
+    )

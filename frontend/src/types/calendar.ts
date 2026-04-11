@@ -85,3 +85,45 @@ export interface TimelineGoal {
 export interface CalendarTimelineResponse {
   goals: TimelineGoal[];
 }
+
+// --- Deadline Tasks (upcoming-deadlines) ---
+
+// Задача с приближающимся дедлайном
+export interface DeadlineTaskView {
+  id: number;
+  title: string;
+  type: 'recurring' | 'one-time';
+  deadline: string;  // ISO date
+  days_left: number;
+  // Для recurring:
+  start_date?: string | null;
+  end_date?: string | null;
+  effective_start_date?: string | null;
+  effective_end_date?: string | null;
+  weekdays?: number[] | null;
+  target_percent?: number | null;
+  current_percent?: number | null;
+  // Общее:
+  goal_id: number;
+  goal_title: string;
+  goal_color: string;
+  milestone_id: number;
+}
+
+// Группа задач по вехе
+export interface DeadlineMilestoneGroup {
+  milestone_id: number;
+  milestone_title: string;
+  goal_id: number;
+  goal_title: string;
+  goal_color: string;
+  milestone_end_date: string;
+  tasks: DeadlineTaskView[];
+}
+
+// Ответ GET /api/calendar/upcoming-deadlines
+export interface UpcomingDeadlinesResponse {
+  days_ahead: number;
+  total_tasks: number;
+  milestones: DeadlineMilestoneGroup[];
+}

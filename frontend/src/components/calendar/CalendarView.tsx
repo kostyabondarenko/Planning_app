@@ -6,8 +6,10 @@ import { RefreshCw, Plus } from 'lucide-react';
 import GoalFilter from './GoalFilter';
 import CalendarGrid from './CalendarGrid';
 import DayDetailsPanel from './DayDetailsPanel';
-import GoalsTimeline from './GoalsTimeline';
+import DeadlineTasksList from './DeadlineTasksList';
+import TaskDateEditModal from './TaskDateEditModal';
 import { useCalendar } from '@/lib/useCalendar';
+import { DeadlineTaskView } from '@/types/calendar';
 
 const STORAGE_KEY = 'calendar_include_archived';
 
@@ -81,6 +83,8 @@ export default function CalendarView() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [includeArchived, setIncludeArchived] = useState(getInitialArchived);
   const [isGridCollapsed, setIsGridCollapsed] = useState(false);
+  const [editingTask, setEditingTask] = useState<DeadlineTaskView | null>(null);
+  const [deadlineRefreshKey, setDeadlineRefreshKey] = useState(0);
 
   const { days, isLoading, error, refetch } = useCalendar(currentYear, currentMonth, activeGoalIds, includeArchived);
 
@@ -156,6 +160,13 @@ export default function CalendarView() {
     }
   }, []);
 
+  const handleTaskSave = useCallback((_updatedTask: DeadlineTaskView) => {
+    setEditingTask(null);
+    // Обновить список дедлайнов и календарную сетку
+    setDeadlineRefreshKey((k) => k + 1);
+    refetch();
+  }, [refetch]);
+
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: 24 }}>
       {/* Фильтр по целям */}
@@ -218,12 +229,19 @@ export default function CalendarView() {
         />
       )}
 
-      {/* Timeline целей */}
-      <GoalsTimeline
-        year={currentYear}
-        month={currentMonth}
+      {/* Задачи с приближающимися дедлайнами */}
+      <DeadlineTasksList
         goalIds={activeGoalIds}
         includeArchived={includeArchived}
+        onTaskEdit={setEditingTask}
+        refreshKey={deadlineRefreshKey}
+      />
+
+      {/* Модалка редактирования дат задачи */}
+      <TaskDateEditModal
+        task={editingTask}
+        onClose={() => setEditingTask(null)}
+        onSave={handleTaskSave}
       />
     </div>
   );

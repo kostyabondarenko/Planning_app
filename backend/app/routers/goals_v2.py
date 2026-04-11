@@ -787,12 +787,13 @@ def update_recurring_action(
         action.target_percent = action_data.target_percent
 
     # Обновление дат периода действия
+    # Используем model_fields_set чтобы отличить "не передано" от "передано как null"
     dates_changed = False
-    if action_data.start_date is not None:
-        action.start_date = action_data.start_date
+    if "start_date" in action_data.model_fields_set:
+        action.start_date = action_data.start_date  # может быть None — сброс к периоду вехи
         dates_changed = True
-    if action_data.end_date is not None:
-        action.end_date = action_data.end_date
+    if "end_date" in action_data.model_fields_set:
+        action.end_date = action_data.end_date  # может быть None — сброс к периоду вехи
         dates_changed = True
     if dates_changed:
         _validate_action_dates(action.start_date, action.end_date, action.milestone)
@@ -989,6 +990,17 @@ def update_one_time_action(
     if action_data.title is not None:
         action.title = action_data.title
     if action_data.deadline is not None:
+        milestone = action.milestone
+        if action_data.deadline < milestone.start_date:
+            raise HTTPException(
+                status_code=400,
+                detail="deadline не может быть раньше начала вехи",
+            )
+        if action_data.deadline > milestone.end_date:
+            raise HTTPException(
+                status_code=400,
+                detail="deadline не может быть позже окончания вехи",
+            )
         action.deadline = action_data.deadline
     if action_data.completed is not None:
         action.completed = action_data.completed

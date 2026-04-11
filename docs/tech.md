@@ -10,6 +10,8 @@
 - **PostgreSQL** — реляционная база данных
 - **Python-Jose** — JWT-токены
 - **Passlib** + bcrypt — хеширование паролей
+- **Authlib** — OAuth 2.0 клиент (Google OAuth)
+- **httpx** — HTTP-клиент для OAuth-запросов
 
 ### Frontend
 - **Next.js** 16.1.0 — React фреймворк
@@ -46,7 +48,7 @@ Planning_app/
 
 ## 3. Реализованные модули
 
-- ✅ **Аутентификация** — JWT, регистрация, вход
+- ✅ **Аутентификация** — JWT, регистрация, вход, Google OAuth 2.0
 - ✅ **Цели и шаги** — CRUD, связь цель → шаги
 - ✅ **Задачи (ToDo)** — быстрые задачи, связь с шагами
 - ✅ **Прогресс** — расчёт и визуализация
@@ -68,6 +70,10 @@ users → goals → steps
 ### Auth
 - `POST /auth/register` — регистрация
 - `POST /auth/login` — вход (JWT)
+- `GET /auth/google/login` — начало Google OAuth flow
+- `GET /auth/google/callback` — callback от Google, выдача JWT
+- `GET /auth/me` — профиль текущего пользователя
+- `PUT /auth/me` — обновление профиля
 
 ### Goals
 - `GET/POST /goals/` — список / создание
