@@ -24,6 +24,9 @@
 
 ### Инфраструктура
 - **Docker** + **Docker Compose** — контейнеризация
+  - `docker-compose.yml` — dev-окружение
+  - `docker-compose.prod.yml` — prod-окружение (uvicorn с `--proxy-headers`, `next start`, volumes persistence)
+- **Cloudflare Tunnel** — публичный HTTPS без проброса портов (домен `goalnavigator.ru`, backend на субдомене `api.goalnavigator.ru`)
 - **pytest** — тестирование backend
 
 ## 2. Структура проекта
@@ -102,7 +105,26 @@ npm install
 npm run dev
 ```
 
-## 7. Тестирование
+## 7. Production-деплой
+
+Приложение разворачивается на домашнем Windows-ПК с публичным HTTPS через Cloudflare Tunnel. Детали — в скилле `.claude/skills/deploy-cloudflare-tunnel/` и плане `plans/015-deploy-internet.md`.
+
+```powershell
+# Запуск prod-стека
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+
+# Cloudflare Tunnel (один раз, затем автозапуск как Windows-сервис)
+cloudflared tunnel run goal-navigator
+```
+
+Ключевые файлы:
+- `docker-compose.prod.yml` — prod-конфигурация
+- `.env.production` — домен, CORS, GOOGLE_*, SECRET_KEY (не в git)
+- `.env.production.example` — шаблон
+- `frontend/.env.production` — `NEXT_PUBLIC_API_URL` (читается на build)
+- `~/.cloudflared/config.yml` — маршруты tunnel → localhost:3000 (frontend) и :8000 (backend)
+
+## 8. Тестирование
 
 ```bash
 cd backend

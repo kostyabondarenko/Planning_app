@@ -16,10 +16,14 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Goal Navigator API", lifespan=lifespan)
 
-frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
-allowed_origins = ["http://localhost:3000", "http://localhost:3001"]
-if frontend_url not in allowed_origins:
-    allowed_origins.append(frontend_url)
+cors_origins_env = os.getenv("CORS_ORIGINS")
+if cors_origins_env:
+    allowed_origins = [o.strip() for o in cors_origins_env.split(",") if o.strip()]
+else:
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+    allowed_origins = ["http://localhost:3000", "http://localhost:3001"]
+    if frontend_url not in allowed_origins:
+        allowed_origins.append(frontend_url)
 
 # CORS middleware
 app.add_middleware(

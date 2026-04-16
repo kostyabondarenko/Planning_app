@@ -15,11 +15,11 @@ export const metadata: Metadata = {
     template: "%s — Goal Navigator",
   },
   description: "Твой личный помощник в достижении целей",
-  manifest: "/manifest.json",
+  manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
-    title: "Goal Navigator",
+    statusBarStyle: "black-translucent",
+    title: "Goals",
   },
   icons: {
     icon: [
@@ -41,7 +41,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#FFFBF7",
+  themeColor: "#E8A87C",
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -54,7 +55,7 @@ export default function RootLayout({
       <head>
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
       <body className={plusJakartaSans.className}>
         <ThemeProvider>{children}</ThemeProvider>
